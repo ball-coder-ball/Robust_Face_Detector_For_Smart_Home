@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Scanning - สแกนใบหน้า</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #1a1a1a; color: #ffffff; overflow-x: hidden; }
+        .hero-title { font-family: 'Crimson Text', serif; font-weight: 700; }
+        .gradient-text { background: linear-gradient(135deg, #00ff88, #00ccff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .camera-container { position: relative; border: 3px solid #00ff88; border-radius: 16px; overflow: hidden; background: #000; }
+        .scanning-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .scan-line { position: absolute; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #00ff88, transparent); animation: scan-vertical 2s linear infinite; }
+        @keyframes scan-vertical { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+        .access-status { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; opacity: 0; transition: all 0.5s ease; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 16px; width: 80%; }
+        .access-status.show { opacity: 1; }
+        .access-granted { color: #00ff88; }
+        .access-denied { color: #ff4444; }
+        .status-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; backdrop-filter: blur(10px); }
+        .scan-button { background: linear-gradient(135deg, #00ff88, #00cc6a); border: none; color: #0a0a0a; font-weight: 600; padding: 20px 40px; border-radius: 16px; cursor: pointer; transition: all 0.3s ease; width: 100%; }
+        .scan-button.scanning { background: linear-gradient(135deg, #ffaa00, #ff8800); }
+        .log-entry { padding: 12px; border-radius: 8px; margin-bottom: 8px; background: rgba(255, 255, 255, 0.05); border-left: 4px solid #00ff88; font-size: 0.9rem; }
+        .log-entry.error { border-left-color: #ff4444; }
+    </style>
+</head>
+<body>
+    <main class="container mx-auto px-6 py-8">
+        <div class="text-center mb-8">
+            <h1 class="hero-title text-4xl md:text-5xl mb-4"><span class="gradient-text">สแกนใบหน้า</span></h1>
+            <p class="text-gray-400">มองหน้าจอเพื่อทำการตรวจจำ</p>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2">
+                <div class="camera-container aspect-video relative mb-6">
+                    <video id="cameraFeed" class="w-full h-full object-cover"></video>
+                    <div class="scanning-overlay">
+                        <div class="scan-line" id="scanLine"></div>
+                    </div>
+                    
+                    <!-- Success/Fail Overlay -->
+                    <div class="access-status" id="accessStatus">
+                        <div class="text-6xl mb-4" id="statusIcon">✓</div>
+                        <div class="text-2xl font-bold mb-2" id="statusTitle">...</div>
+                        <div class="text-lg" id="statusMessage">...</div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <button id="scanButton" class="scan-button">เริ่มสแกนใบหน้า</button>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="status-card">
+                    <h3 class="text-lg font-semibold mb-4 text-blue-400">สถานะปัจจุบัน</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between"><span class="text-gray-400">สถานะระบบ</span><span class="font-medium text-green-400" id="sysStatus">Standby</span></div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <h3 class="text-lg font-semibold mb-4 text-orange-400">สถิติความปลอดภัย</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between"><span class="text-gray-400">การเข้าใช้วันนี้</span><span class="font-medium text-green-400" id="todayAccess">0 ครั้ง</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">การปลอมแปลง</span><span class="font-medium text-red-400" id="spoofAttempts">0 ครั้ง</span></div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <h3 class="text-lg font-semibold mb-4 text-purple-400">ประวัติการเข้าใช้</h3>
+                    <div id="accessLog" class="h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="main.js"></script>
+    <script>
+        let scanInterval;
+        let isScanning = false;
+        // Load stats from local storage or init 0
+        let stats = JSON.parse(localStorage.getItem('smartHomeStats')) || { access: 0, spoof: 0 };
+
+        function updateStatsUI() {
+            document.getElementById('todayAccess').textContent = `${stats.access} ครั้ง`;
+            document.getElementById('spoofAttempts').textContent = `${stats.spoof} ครั้ง`;
+            localStorage.setItem('smartHomeStats', JSON.stringify(stats));
+        }
+        updateStatsUI();
+
+        function log(msg, type='normal') {
+            const div = document.createElement('div');
+            div.className = `log-entry ${type==='error'?'error':''}`;
+            div.innerHTML = `<div>${msg}</div><div class="text-xs text-gray-500">${new Date().toLocaleTimeString()}</div>`;
+            document.getElementById('accessLog').prepend(div);
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const video = document.getElementById('cameraFeed');
+            const btn = document.getElementById('scanButton');
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            video.play();
+
+            btn.addEventListener('click', () => {
+                if(isScanning) return;
+                isScanning = true;
+                btn.textContent = "กำลังสแกน...";
+                btn.classList.add('scanning');
+                document.getElementById('sysStatus').textContent = "Scanning...";
+                document.getElementById('scanLine').style.display = 'block';
+
+                scanInterval = setInterval(async () => {
+                    const cvs = document.createElement('canvas');
+                    cvs.width = video.videoWidth; cvs.height = video.videoHeight;
+                    cvs.getContext('2d').drawImage(video, 0, 0);
+
+                    try {
+                        const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/scan-face`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ image_data: cvs.toDataURL('image/jpeg') })
+                        });
+                        const data = await res.json();
+
+                        if(data.is_match) {
+                            // Found! Stop scanning
+                            clearInterval(scanInterval);
+                            isScanning = false;
+
+                            // UI Feedback
+                            document.getElementById('accessStatus').classList.add('show');
+                            document.getElementById('statusIcon').textContent = "✓";
+                            document.getElementById('statusTitle').textContent = "อนุญาตให้เข้า";
+                            document.getElementById('statusMessage').textContent = `ยินดีต้อนรับ ${data.user.name}`;
+                            document.getElementById('statusIcon').className = "text-6xl mb-4 access-granted";
+                            
+                            btn.textContent = "สแกนเสร็จสิ้น";
+                            btn.classList.remove('scanning');
+                            document.getElementById('scanLine').style.display = 'none';
+
+                            // Update Stats
+                            stats.access++;
+                            updateStatsUI();
+                            log(`เข้าสู่ระบบ: ${data.user.name}`);
+
+                            // Redirect or Reset
+                            setTimeout(() => {
+                                window.location.href = 'index.html';
+                            }, 3000);
+
+                        } else if (data.reason === 'spoof_detected') {
+                            stats.spoof++;
+                            updateStatsUI();
+                            log("ตรวจพบการปลอมแปลง", 'error');
+                        }
+                    } catch(e) { console.log(e); }
+                }, 1000);
+            });
+        });
+    </script>
+</body>
+</html>

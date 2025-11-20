@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spoof Detection - ตรวจจับการปลอมแปลงใบหน้า</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #1a1a1a; color: #ffffff; overflow-x: hidden; }
+        .hero-title { font-family: 'Crimson Text', serif; font-weight: 700; }
+        .gradient-text { background: linear-gradient(135deg, #00ff88, #00ccff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .camera-container { position: relative; border: 3px solid #333; border-radius: 16px; overflow: hidden; background: #000; }
+        .face-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 200px; height: 250px; border: 2px solid #00ff88; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; opacity: 0; transition: all 0.3s ease; }
+        .face-overlay.detected { opacity: 1; animation: pulse-ring 2s infinite; }
+        @keyframes pulse-ring { 0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 50% { transform: translate(-50%, -50%) scale(1.05); opacity: 0.7; } }
+        .scanning-grid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(0, 255, 136, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 136, 0.1) 1px, transparent 1px); background-size: 20px 20px; opacity: 0.3; animation: scan-grid 3s linear infinite; }
+        @keyframes scan-grid { 0% { transform: translate(0, 0); } 100% { transform: translate(20px, 20px); } }
+        .btn-primary { background: linear-gradient(135deg, #00ff88, #00cc6a); border: none; color: #0a0a0a; font-weight: 600; padding: 16px 32px; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; width: 100%; }
+        .form-input { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 16px; color: white; width: 100%; transition: all 0.3s ease; }
+        .form-input:focus { outline: none; border-color: #00ff88; box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1); }
+        .notification { position: fixed; top: 20px; right: 20px; padding: 16px 24px; border-radius: 8px; color: white; font-weight: 500; z-index: 1000; background: #00ff88; color: black;}
+        .btn-disabled { opacity: 0.7; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <main class="container mx-auto px-6 py-8">
+        <div class="text-center mb-8">
+            <h1 class="hero-title text-4xl md:text-5xl mb-4"><span class="gradient-text">ตรวจจับใบหน้า</span></h1>
+            <p class="text-gray-400">ขั้นตอนการตรวจจับการปลอมแปลงและขออนุมัติ</p>
+        </div>
+
+        <div class="max-w-2xl mx-auto mb-8">
+            <div class="camera-container aspect-video relative">
+                <video id="cameraFeed" class="w-full h-full object-cover"></video>
+                <div class="scanning-grid"></div>
+                <div class="face-overlay" id="faceOverlay"></div>
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-center">
+                    <div id="statusMessage" class="text-white font-medium mb-2">พร้อมตรวจจับ</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-md mx-auto text-center">
+            <button id="startDetectionBtn" class="btn-primary mb-4">เริ่มตรวจจับใบหน้า (Spoof Check)</button>
+        </div>
+
+        <div id="nameFormSection" class="max-w-md mx-auto mt-8 hidden">
+            <div class="bg-gray-800 bg-opacity-50 rounded-2xl p-6">
+                <h3 class="text-xl font-semibold mb-4 text-center">ตรวจจับผ่านแล้ว! กรอกชื่อของคุณ</h3>
+                <input type="text" id="userName" class="form-input mb-4" placeholder="ชื่อ-นามสกุล" required>
+                <button id="submitNameBtn" class="btn-primary">ขออนุมัติการลงทะเบียน</button>
+                <!-- Debug Text: Shows current status -->
+                <p id="waitMsg" class="text-yellow-500 text-sm mt-2 hidden text-center font-mono">Status: Waiting for submission...</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const video = document.getElementById('cameraFeed');
+            const startBtn = document.getElementById('startDetectionBtn');
+            const nameForm = document.getElementById('nameFormSection');
+            const faceOverlay = document.getElementById('faceOverlay');
+            const statusMsg = document.getElementById('statusMessage');
+            const submitBtn = document.getElementById('submitNameBtn');
+            const waitMsg = document.getElementById('waitMsg');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+            } catch(e) { alert('Camera Error'); }
+
+            // 1. Spoof Check
+            startBtn.addEventListener('click', async () => {
+                startBtn.disabled = true;
+                startBtn.textContent = "กำลังตรวจสอบ...";
+                faceOverlay.classList.add('detected');
+                
+                await new Promise(r => setTimeout(r, 1500));
+
+                const cvs = document.createElement('canvas');
+                cvs.width = video.videoWidth; cvs.height = video.videoHeight;
+                cvs.getContext('2d').drawImage(video, 0, 0);
+                
+                try {
+                    const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/spoof-check`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ image_data: cvs.toDataURL('image/jpeg') })
+                    });
+                    const data = await res.json();
+
+                    if(data.is_real) {
+                        statusMsg.textContent = "ผ่านการตรวจสอบ";
+                        statusMsg.classList.add("text-green-400");
+                        nameForm.classList.remove('hidden');
+                        startBtn.classList.add('hidden');
+                        faceSystem.showNotification('ตรวจสอบผ่าน กรุณากรอกชื่อ', 'success');
+                    } else {
+                        startBtn.disabled = false;
+                        startBtn.textContent = "ลองใหม่";
+                        alert("ตรวจพบความเสี่ยง");
+                    }
+                } catch(e) {
+                    alert("API Error: " + e.message);
+                    startBtn.disabled = false;
+                }
+            });
+
+            // 2. Request Approval
+            submitBtn.addEventListener('click', async () => {
+                const name = document.getElementById('userName').value;
+                if(!name) return alert("กรุณากรอกชื่อ");
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = "ส่งคำขอแล้ว... (กรุณารอ)";
+                submitBtn.classList.add('btn-disabled');
+                
+                waitMsg.classList.remove('hidden');
+                waitMsg.textContent = "กำลังส่งคำขอไปยัง Server...";
+
+                try {
+                    // Send Request
+                    const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/request-permission`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ name: name })
+                    });
+                    const data = await res.json();
+
+                    if(data.success) {
+                        const userId = data.user_id;
+                        waitMsg.textContent = `ส่งคำขอแล้ว (ID: ${userId}) รอการอนุมัติจาก LINE...`;
+                        
+                        // Start Polling
+                        let checkCount = 0;
+                        const poll = setInterval(async () => {
+                            checkCount++;
+                            try {
+                                const stRes = await fetch(`${faceSystem.apiBaseUrl}/api/v1/check-approval-status/${userId}`);
+                                const stData = await stRes.json();
+                                
+                                // Update UI Debug Text
+                                waitMsg.textContent = `Check #${checkCount}: สถานะ ${stData.status} (ID: ${userId})`;
+
+                                if(stData.status === 'approved') {
+                                    clearInterval(poll);
+                                    waitMsg.textContent = "อนุมัติแล้ว! กำลังย้ายหน้า...";
+                                    waitMsg.className = "text-green-400 text-sm mt-2 text-center font-bold";
+                                    
+                                    faceSystem.showNotification('✅ อนุมัติแล้ว! กำลังไปหน้าถ่ายรูป', 'success');
+                                    setTimeout(() => {
+                                        // ส่ง ID ไปด้วย
+                                        window.location.href = `register-face.html?user_id=${userId}&name=${encodeURIComponent(name)}`;
+                                    }, 1500);
+
+                                } else if (stData.status === 'rejected') {
+                                    clearInterval(poll);
+                                    waitMsg.textContent = "คำขอถูกปฏิเสธ";
+                                    waitMsg.className = "text-red-500 text-sm mt-2 text-center font-bold";
+                                    alert("คำขอถูกปฏิเสธ");
+                                    window.location.reload();
+                                }
+                            } catch(err) {
+                                console.error(err);
+                            }
+                        }, 2000); // Check every 2 sec
+                    }
+                } catch(e) {
+                    alert("Error: " + e.message);
+                    window.location.reload();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
