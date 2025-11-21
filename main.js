@@ -1,6 +1,6 @@
 class FaceRegistrationSystem {
     constructor() {
-        // ⚠️⚠️ อย่าลืมแก้ URL ตรงนี้ให้เป็น Ngrok ล่าสุดจาก Colab ⚠️⚠️
+        // ⚠️⚠️ อย่าลืมแก้ URL ตรงนี้เป็นของ ngrok ล่าสุดจาก Colab ⚠️⚠️
         this.apiBaseUrl = 'https://alma-unvirulent-lanita.ngrok-free.dev'; 
     }
 
@@ -26,5 +26,26 @@ class FaceRegistrationSystem {
         requestAnimationFrame(() => div.style.transform = 'translateX(0)');
     }
 }
+
+// --- OVERRIDE FETCH เพื่อแก้ปัญหา Ngrok Warning ---
+const originalFetch = window.fetch;
+window.fetch = function(url, options = {}) {
+    // ถ้า URL เป็นของ ngrok ให้เพิ่ม Header พิเศษ
+    if (url.includes('ngrok')) {
+        if (!options.headers) {
+            options.headers = {};
+        }
+        // วิธีที่ 1: เพิ่ม Header (สำหรับ ngrok บางเวอร์ชัน)
+        // options.headers['ngrok-skip-browser-warning'] = 'true'; 
+        
+        // วิธีที่ 2: หรือถ้าเป็น object Header แบบนี้
+        if (options.headers instanceof Headers) {
+             options.headers.append('ngrok-skip-browser-warning', 'true');
+        } else {
+             options.headers['ngrok-skip-browser-warning'] = 'true';
+        }
+    }
+    return originalFetch(url, options);
+};
 
 const faceSystem = new FaceRegistrationSystem();
