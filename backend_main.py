@@ -71,6 +71,79 @@ class SpoofNet(nn.Module):
         x = self.conv2d(x)
         x = self.relu(x)
         x = self.dropout1(x)
+import uvicorn
+import numpy as np
+import base64
+import cv2
+import os
+import io
+import nest_asyncio
+import gdown 
+import uuid
+from pyngrok import ngrok
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+from typing import List
+from deepface import DeepFace
+
+# --- PYTORCH IMPORTS ---
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+from torchvision.models import resnet50, ResNet50_Weights
+from PIL import Image
+import warnings
+
+warnings.filterwarnings("ignore")
+
+# --- LINE SDK ---
+from linebot import LineBotApi, WebhookHandler
+from linebot.models import TextSendMessage, TemplateSendMessage, ButtonsTemplate, PostbackAction, URIAction
+from linebot.exceptions import InvalidSignatureError
+from linebot.models.events import PostbackEvent
+
+# ==========================================
+# ⚙️ CONFIGURATION
+# ==========================================
+LINE_CHANNEL_ACCESS_TOKEN = 'yMTfcTZoEaG2kSZMDtUCVT5I8S47c0APKUNUtRvFfIV_Aj+005EixdA9iDJPDReJaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfoMo279kisRv1hsKM6K+0Me32GvqQvG07qCPMXuHda9QdB04t89/1O/w1cDnyilFU='
+LINE_CHANNEL_SECRET = 'b8c65e65a4ead4ef817d7c66f2832e0c'
+LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
+
+GDRIVE_FILE_ID = "1RtR1gTpcWGPY3z05hhwtdr4zxlMuxkzP"
+SPOOF_MODEL_PATH = "resnet50_spoof_best.pt"
+NGROK_AUTH_TOKEN = 'YOUR_NGROK_AUTH_TOKEN_HERE' 
+
+# ==========================================
+# 🧠 MODEL ARCHITECTURE (SpoofNet)
+# ==========================================
+class SpoofNet(nn.Module):
+    def __init__(self):
+        super(SpoofNet, self).__init__()
+        self.pretrained_net = resnet50(weights=None) 
+        self.features = nn.Sequential(
+            self.pretrained_net.conv1,
+            self.pretrained_net.bn1,
+            self.pretrained_net.relu,
+            self.pretrained_net.maxpool,
+            self.pretrained_net.layer1,
+            self.pretrained_net.layer2,
+            self.pretrained_net.layer3,
+            self.pretrained_net.layer4
+        )
+        self.conv2d = nn.Conv2d(2048, 32, kernel_size=(3, 3), padding=1)
+        self.relu = nn.ReLU()
+        self.dropout1 = nn.Dropout(0.2)
+        self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(32, 1) 
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.conv2d(x)
+        x = self.relu(x)
+        x = self.dropout1(x)
         x = self.global_avg_pool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
@@ -80,6 +153,7 @@ class SpoofNet(nn.Module):
 # Loading
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 spoof_model = None
+MODELS_READY = False
 
 preprocess_transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -122,8 +196,6 @@ def load_pytorch_model():
             print(f"❌ Model file not found")
     except Exception as e:
         print(f"❌ Error loading model: {e}")
-
-load_pytorch_model()
 
 # ==========================================
 # 🚀 APP SETUP & DB
@@ -184,13 +256,24 @@ known_face_db = load_known_faces()
 def calculate_cosine_similarity(v1, v2):
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
-# 🔥 PRE-LOAD DEEPFACE MODEL 🔥
-print("⏳ Warming up DeepFace model...")
-try:
-    DeepFace.build_model(MODEL_NAME)
-    print("✅ DeepFace VGG-Face Warmed Up!")
-except Exception as e:
-    print(f"⚠️ DeepFace Warmup Failed: {e}")
+# 🔥 BACKGROUND MODEL LOADING 🔥
+import threading
+def load_models_task():
+    global MODELS_READY
+    print("⏳ Warming up DeepFace model (Background)...")
+    try:
+        DeepFace.build_model(MODEL_NAME)
+        print("✅ DeepFace VGG-Face Warmed Up!")
+    except Exception as e:
+        print(f"⚠️ DeepFace Warmup Failed: {e}")
+    
+    load_pytorch_model()
+    MODELS_READY = True
+    print("🚀 ALL MODELS READY!")
+
+@app.on_event("startup")
+async def startup_event():
+    threading.Thread(target=load_models_task).start()
 
 class RequestModel(BaseModel):
     image_data: str = None
@@ -204,7 +287,7 @@ class RequestModel(BaseModel):
 
 @app.get("/api/v1/health")
 async def health_check():
-    return {"status": "ok", "models_loaded": True}
+    return {"status": "ok", "models_loaded": MODELS_READY}
 
 @app.post("/api/v1/spoof-check")
 async def spoof_check(req: RequestModel):
@@ -224,6 +307,7 @@ async def spoof_check(req: RequestModel):
 
 @app.post("/api/v1/check-face-existence")
 async def check_face_existence(req: RequestModel):
+    if not MODELS_READY: return {"found": False, "error": "Models not ready"}
     try:
         img = base64_to_cv2_image(req.image_data)
         objs = DeepFace.represent(img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=False)
@@ -253,10 +337,14 @@ async def request_permission(req: RequestModel):
             fname = f"temp_{user_id}.jpg"
             save_path = os.path.join("static", fname)
             img.save(save_path)
-            image_url = f"{PUBLIC_URL}/static/{fname}"
+            # Ensure PUBLIC_URL doesn't have trailing slash
+            clean_public_url = PUBLIC_URL.rstrip("/")
+            image_url = f"{clean_public_url}/static/{fname}"
             print(f"📸 Image saved: {image_url}")
         except Exception as e:
             print(f"⚠️ Image save failed: {e}")
+    else:
+        print(f"⚠️ No image data or PUBLIC_URL missing. URL: {PUBLIC_URL}")
 
     if not line_bot_api: return {"success": True, "user_id": user_id, "mock": True}
     
@@ -305,6 +393,7 @@ async def register_faces(req: RequestModel):
 
 @app.post("/api/v1/scan-face")
 async def scan_face(req: RequestModel):
+    if not MODELS_READY: return {"is_match": False, "reason": "loading"}
     try:
         # 1. Spoof Check First
         spoof_res = await spoof_check(req)
