@@ -34,86 +34,13 @@ from linebot.models.events import PostbackEvent
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-LINE_CHANNEL_ACCESS_TOKEN = 'yMTfcTZoEaG2kSZMDtUCVT5I8S47c0APKUNUtRvFfIVfAj+005EixdA9iDJPDReJaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfoMo279kisRv1hsKM6K+0Me32GvqQvG07qCPMXuHda9QdB04t89/1O/w1cDnyilFU='
+LINE_CHANNEL_ACCESS_TOKEN = 'LXHZXdXNkTbDuNhXF03TloNz+nWrs+h8u+dNKanERvvDnhIo+//4vue/4dYhOUVQaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfpbhRiCq012IB4NcOXUNdcLcR/SHhfyVaZR2+s+pZWoAdB04t89/1O/w1cDnyilFU='
 LINE_CHANNEL_SECRET = 'b8c65e65a4ead4ef817d7c66f2832e0c'
 LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
 
 GDRIVE_FILE_ID = "1RtR1gTpcWGPY3z05hhwtdr4zxlMuxkzP"
 SPOOF_MODEL_PATH = "resnet50_spoof_best.pt"
 NGROK_AUTH_TOKEN = '35HRFySeHKxSBkuFZ48n0tT6sZl_CoVKLmVZ1o1CuKUwoSje' 
-
-# ==========================================
-# 🧠 MODEL ARCHITECTURE (SpoofNet)
-# ==========================================
-class SpoofNet(nn.Module):
-    def __init__(self):
-        super(SpoofNet, self).__init__()
-        self.pretrained_net = resnet50(weights=None) 
-        self.features = nn.Sequential(
-            self.pretrained_net.conv1,
-            self.pretrained_net.bn1,
-            self.pretrained_net.relu,
-            self.pretrained_net.maxpool,
-            self.pretrained_net.layer1,
-            self.pretrained_net.layer2,
-            self.pretrained_net.layer3,
-            self.pretrained_net.layer4
-        )
-        self.conv2d = nn.Conv2d(2048, 32, kernel_size=(3, 3), padding=1)
-        self.relu = nn.ReLU()
-        self.dropout1 = nn.Dropout(0.2)
-        self.global_avg_pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(32, 1) 
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        x = self.features(x)
-        x = self.conv2d(x)
-        x = self.relu(x)
-        x = self.dropout1(x)
-import uvicorn
-import numpy as np
-import base64
-import cv2
-import os
-import io
-import nest_asyncio
-import gdown 
-import uuid
-from pyngrok import ngrok
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from typing import List
-from deepface import DeepFace
-
-# --- PYTORCH IMPORTS ---
-import torch
-import torch.nn as nn
-import torchvision.transforms as transforms
-from torchvision.models import resnet50, ResNet50_Weights
-from PIL import Image
-import warnings
-
-warnings.filterwarnings("ignore")
-
-# --- LINE SDK ---
-from linebot import LineBotApi, WebhookHandler
-from linebot.models import TextSendMessage, TemplateSendMessage, ButtonsTemplate, PostbackAction, URIAction
-from linebot.exceptions import InvalidSignatureError
-from linebot.models.events import PostbackEvent
-
-# ==========================================
-# ⚙️ CONFIGURATION
-# ==========================================
-LINE_CHANNEL_ACCESS_TOKEN = 'yMTfcTZoEaG2kSZMDtUCVT5I8S47c0APKUNUtRvFfIV_Aj+005EixdA9iDJPDReJaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfoMo279kisRv1hsKM6K+0Me32GvqQvG07qCPMXuHda9QdB04t89/1O/w1cDnyilFU='
-LINE_CHANNEL_SECRET = 'b8c65e65a4ead4ef817d7c66f2832e0c'
-LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
-
-GDRIVE_FILE_ID = "1RtR1gTpcWGPY3z05hhwtdr4zxlMuxkzP"
-SPOOF_MODEL_PATH = "resnet50_spoof_best.pt"
-NGROK_AUTH_TOKEN = 'YOUR_NGROK_AUTH_TOKEN_HERE' 
 
 # ==========================================
 # 🧠 MODEL ARCHITECTURE (SpoofNet)
