@@ -18,7 +18,6 @@
             margin: 0;
         }
 
-        /* Animated Mesh Gradient Background */
         .mesh-bg {
             position: fixed;
             top: 0;
@@ -44,7 +43,6 @@
             width: 400px;
             height: 400px;
             background: #4f46e5;
-            /* Deep Purple */
             animation-delay: 0s;
         }
 
@@ -54,7 +52,6 @@
             width: 350px;
             height: 350px;
             background: #db2777;
-            /* Hot Pink */
             animation-delay: -2s;
         }
 
@@ -64,7 +61,6 @@
             width: 300px;
             height: 300px;
             background: #06b6d4;
-            /* Cyan */
             animation-delay: -4s;
         }
 
@@ -78,7 +74,6 @@
             }
         }
 
-        /* Glassmorphism Card */
         .glass-card {
             background: rgba(255, 255, 255, 0.03);
             backdrop-filter: blur(16px);
@@ -87,7 +82,6 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
 
-        /* Buttons */
         .btn-gradient {
             background: linear-gradient(135deg, #f97316 0%, #db2777 100%);
             transition: all 0.3s ease;
@@ -106,12 +100,10 @@
             transform: none;
         }
 
-        /* Camera Mirror */
         #cameraFeed {
             transform: scaleX(-1);
         }
 
-        /* Loader */
         .loader {
             border: 3px solid rgba(255, 255, 255, 0.1);
             border-left-color: #fff;
@@ -135,14 +127,12 @@
 
 <body class="antialiased min-h-screen flex flex-col relative">
 
-    <!-- Background -->
     <div class="mesh-bg">
         <div class="mesh-blob blob-1"></div>
         <div class="mesh-blob blob-2"></div>
         <div class="mesh-blob blob-3"></div>
     </div>
 
-    <!-- Loading Screen -->
     <div id="loadingScreen"
         class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-xl transition-opacity duration-500">
         <div class="w-16 h-16 border-4 border-white/20 border-t-cyan-400 rounded-full animate-spin mb-4"></div>
@@ -150,10 +140,8 @@
         <p class="text-gray-400 text-sm mt-2">Please wait a moment</p>
     </div>
 
-    <!-- Main Content -->
     <main class="flex-grow container mx-auto px-4 py-12 flex flex-col items-center justify-center relative z-10">
 
-        <!-- Header -->
         <div class="text-center mb-12 opacity-0" id="headerSection">
             <div class="inline-flex items-center justify-center w-20 h-20 rounded-full glass-card mb-6 relative group">
                 <div
@@ -177,26 +165,21 @@
             </p>
         </div>
 
-        <!-- Camera Section -->
         <div class="w-full max-w-3xl mb-16 opacity-0" id="cameraSection">
             <div class="glass-card rounded-3xl p-1 md:p-2 overflow-hidden relative">
-                <!-- Camera Preview -->
                 <div id="camPreview" class="relative aspect-video rounded-2xl overflow-hidden bg-black/40 hidden group">
                     <video id="cameraFeed" class="w-full h-full object-cover"></video>
 
-                    <!-- Countdown Overlay -->
                     <div id="countdownOverlay"
                         class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20 hidden">
                         <span
                             class="text-9xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400 animate-pulse">3</span>
                     </div>
 
-                    <!-- Scanning Line Animation -->
                     <div class="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent w-full h-[10%] top-0 animate-[scan_2s_linear_infinite] hidden"
                         id="scanLine"></div>
                 </div>
 
-                <!-- Action Area -->
                 <div class="p-8 text-center" id="actionArea">
                     <button id="requestCameraBtn"
                         class="btn-gradient text-white text-lg font-semibold py-4 px-10 rounded-full w-full md:w-auto min-w-[280px] flex items-center justify-center gap-3 mx-auto">
@@ -208,9 +191,7 @@
             </div>
         </div>
 
-        <!-- Features Grid -->
         <div class="grid md:grid-cols-3 gap-6 w-full max-w-5xl opacity-0" id="featuresSection">
-            <!-- Card 1 -->
             <div class="glass-card rounded-2xl p-6 hover:bg-white/5 transition-colors">
                 <div class="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center mb-4 text-green-400">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -223,7 +204,6 @@
                     the system database.</p>
             </div>
 
-            <!-- Card 2 -->
             <div class="glass-card rounded-2xl p-6 hover:bg-white/5 transition-colors">
                 <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-blue-400">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -237,7 +217,6 @@
                     homeowner via LINE.</p>
             </div>
 
-            <!-- Card 3 -->
             <div class="glass-card rounded-2xl p-6 hover:bg-white/5 transition-colors">
                 <div
                     class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 text-purple-400">
@@ -256,9 +235,7 @@
 
     <script src="main.js"></script>
     <script>
-        // Animations
         document.addEventListener('DOMContentLoaded', () => {
-            // Entrance Animations
             anime({
                 targets: '#headerSection',
                 opacity: [0, 1],
@@ -287,7 +264,6 @@
             });
         });
 
-        // Logic
         document.addEventListener('DOMContentLoaded', async () => {
             const requestBtn = document.getElementById('requestCameraBtn');
             const btnText = document.getElementById('btnText');
@@ -298,7 +274,6 @@
             const countdownOverlay = document.getElementById('countdownOverlay');
             const actionArea = document.getElementById('actionArea');
 
-            // 1. Check Backend Health (Loading Screen)
             try {
                 let attempts = 0;
                 const checkHealth = async () => {
@@ -316,7 +291,6 @@
                 }
             } catch (e) { console.log("Health check skipped/failed"); }
 
-            // Hide loading screen
             loadingScreen.style.opacity = '0';
             setTimeout(() => loadingScreen.remove(), 500);
 
@@ -330,21 +304,16 @@
                     video.srcObject = stream;
                     video.play();
 
-                    // Show Preview
                     camPreview.classList.remove('hidden');
-                    // Hide button temporarily to focus on camera
-                    // actionArea.style.display = 'none'; 
 
-                    // Countdown 3..2..1
                     btnText.textContent = 'Look at the camera...';
                     countdownOverlay.classList.remove('hidden');
 
                     for (let i = 3; i > 0; i--) {
                         countdownOverlay.querySelector('span').textContent = i;
-                        // Pulse animation reset
                         const span = countdownOverlay.querySelector('span');
                         span.classList.remove('animate-pulse');
-                        void span.offsetWidth; // trigger reflow
+                        void span.offsetWidth;
                         span.classList.add('animate-pulse');
 
                         await new Promise(r => setTimeout(r, 1000));
@@ -353,17 +322,14 @@
 
                     btnText.textContent = 'Verifying...';
 
-                    // Capture
                     const canvas = document.createElement('canvas');
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     const frame = canvas.toDataURL('image/jpeg');
 
-                    // Stop Camera
                     stream.getTracks().forEach(t => t.stop());
 
-                    // Send to Backend
                     const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/check-face-existence`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
