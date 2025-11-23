@@ -156,16 +156,12 @@ def load_known_faces():
     if not os.path.exists(DB_PATH): return embeddings
     for f in os.listdir(DB_PATH):
         if f.endswith(".npy"):
-            # Filename format: Name_UserID_embeddings.npy
-            parts = f.split("_")
-            if len(parts) >= 2:
-                name = parts[0]
-                user_id = parts[1]
-                try:
-                    embs = np.load(os.path.join(DB_PATH, f))
-                    if name not in embeddings: embeddings[name] = {"user_id": user_id, "embeddings": []}
-                    for e in embs: embeddings[name]["embeddings"].append(e)
-                except: pass
+            name = f.split("_")[0]
+            try:
+                embs = np.load(os.path.join(DB_PATH, f))
+                if name not in embeddings: embeddings[name] = []
+                for e in embs: embeddings[name].append(e)
+            except: pass
     print(f"Loaded {len(embeddings)} users.")
     return embeddings
 known_face_db = load_known_faces()
@@ -214,9 +210,60 @@ async def check_face_existence(req: RequestModel):
         if not objs: return {"found": False}
         target_emb = objs[0]["embedding"]
         found_user = None
-        for name, data in known_face_db.items():
-            for db_emb in data["embeddings"]:
+        for name, db_embs in known_face_db.items():
+            for db_emb in db_embs:
                 if calculate_cosine_similarity(target_emb, db_emb) > 0.60:
+                    found_user = name; break
+            if found_user: break
+        return {"found": True, "name": found_user} if found_user else {"found": False}
+    except: return {"found": False}
+
+@app.post("/api/v1/request-permission")
+async def request_permission(req: RequestModel):
+    global PUBLIC_URL
+    user_id = f"user_{np.random.randint(10000, 99999)}"
+    user_status_db[user_id] = "pending" 
+    print(f"👉 [REQ] Created ID: {user_id} | Status: {user_status_db[user_id]}")
+
+    image_url = "https://via.placeholder.com/300"
+    if req.image_data and PUBLIC_URL:
+        try:
+            img = base64_to_pil_image(req.image_data)
+            fname = f"temp_{user_id}.jpg"
+            save_path = os.path.join("static", fname)
+            img.save(save_path)
+            image_url = f"{PUBLIC_URL}/static/{fname}"
+            print(f"📸 Image saved: {image_url}")
+        except Exception as e:
+            print(f"⚠️ Image save failed: {e}")
+
+    if not line_bot_api: return {"success": True, "user_id": user_id, "mock": True}
+    
+    try:
+        actions = [
+            PostbackAction(label="อนุมัติ", data=f"action=approve&user_id={user_id}"),
+            PostbackAction(label="ปฏิเสธ", data=f"action=reject&user_id={user_id}")
+        ]
+        template = TemplateSendMessage(
+            alt_text="คำขอลงทะเบียน",
+            template=ButtonsTemplate(
+                thumbnail_image_url=image_url,
+                image_aspect_ratio="rectangle",
+                image_size="cover",
+                title=f"คำขอ: {req.name}",
+                text=f"ID: {user_id}",
+                actions=actions
+            )
+        )
+        line_bot_api.push_message(LINE_HOST_USER_ID, template)
+    except Exception as e: print(f"LINE Error: {e}")
+    
+    return {"success": True, "user_id": user_id}
+
+@app.get("/api/v1/check-approval-status/{user_id}")
+async def check_approval_status(user_id: str):
+    status = user_status_db.get(user_id, "pending")
+    return {"status": status}
 
 @app.post("/api/v1/register-faces")
 async def register_faces(req: RequestModel):
@@ -248,27 +295,17 @@ async def scan_face(req: RequestModel):
         objs = DeepFace.represent(img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=True)
         if not objs: return {"is_match": False, "reason": "no_face"}
         target_emb = objs[0]["embedding"]
-        best_score = 0; best_name = None; best_uid = None
-        
-        for name, data in known_face_db.items():
-            for db_emb in data["embeddings"]:
+        best_score = 0; best_name = None
+        for name, db_embs in known_face_db.items():
+            for db_emb in db_embs:
                 score = calculate_cosine_similarity(target_emb, db_emb)
-                if score > best_score: 
-                    best_score = score
-                    best_name = name
-                    best_uid = data["user_id"]
-        
+                if score > best_score: best_score = score; best_name = name
         if best_score > 0.60: 
-            # Check approval status
-            # If user is in known_face_db but not in user_status_db (e.g. after restart), default to pending
-            approval_status = user_status_db.get(best_uid, "pending")
-            
             return {
                 "is_match": True, 
-                "user": {"name": best_name, "user_id": best_uid}, 
+                "user": {"name": best_name}, 
                 "confidence": float(best_score),
-                "spoof_confidence": spoof_res["confidence"],
-                "approval_status": approval_status
+                "spoof_confidence": spoof_res["confidence"]
             }
         else: return {"is_match": False, "reason": "unknown"}
     except: return {"is_match": False, "reason": "error"}

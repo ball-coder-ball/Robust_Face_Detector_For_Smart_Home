@@ -338,8 +338,8 @@
                     const data = await res.json();
 
                     if (data.found) {
-                        faceSystem.showNotification(`Welcome back, ${data.name}! Redirecting...`, 'success');
-                        setTimeout(() => window.location.href = 'scan.html', 1500);
+                        faceSystem.showNotification(`Welcome back, ${data.name}! Proceeding to approval...`, 'success');
+                        setTimeout(() => window.location.href = `register.html?known=true&name=${encodeURIComponent(data.name)}`, 1500);
                     } else {
                         faceSystem.showNotification('Face not found. Redirecting to registration...', 'info');
                         setTimeout(() => window.location.href = 'register.html', 1500);

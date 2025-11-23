@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registration - ลงทะเบียน</title>
+    <title>Smart Home Registration</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap"
@@ -213,10 +213,19 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             anime({
-                targets: '#headerSection', opacity: [0, 1], translateY: [-20, 0], duration: 800, easing: 'easeOutExpo'
+                targets: '#headerSection',
+                opacity: [0, 1],
+                translateY: [-20, 0],
+                duration: 800,
+                easing: 'easeOutExpo'
             });
             anime({
-                targets: '#mainCard', opacity: [0, 1], scale: [0.95, 1], duration: 800, delay: 200, easing: 'easeOutExpo'
+                targets: '#mainCard',
+                opacity: [0, 1],
+                scale: [0.95, 1],
+                duration: 800,
+                delay: 200,
+                easing: 'easeOutExpo'
             });
         });
 
@@ -229,10 +238,41 @@
             const step1 = document.getElementById('step1');
 
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true
+                });
                 video.srcObject = stream;
                 video.play();
-            } catch (e) { alert('Camera Error: ' + e.message); }
+
+                // Known User Auto-Flow
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('known') === 'true') {
+                    const name = urlParams.get('name');
+                    if (name) {
+                        step1.classList.add('hidden');
+                        nameForm.classList.remove('hidden');
+
+                        // Hide manual controls
+                        const inputContainer = document.getElementById('userName').parentElement;
+                        if (inputContainer) inputContainer.classList.add('hidden');
+                        submitBtn.classList.add('hidden');
+
+                        document.getElementById('userName').value = name;
+
+                        // Update header
+                        const header = nameForm.querySelector('.text-green-400 span');
+                        if (header) header.textContent = "Identity Verified";
+
+                        statusLog.classList.remove('hidden');
+                        statusLog.textContent = `Recognized ${name}. Requesting approval...`;
+
+                        setTimeout(() => submitBtn.click(), 1000);
+                    }
+                }
+
+            } catch (e) {
+                alert('Camera Error: ' + e.message);
+            }
 
             startBtn.addEventListener('click', async () => {
                 startBtn.disabled = true;
@@ -246,8 +286,12 @@
                 try {
                     const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/spoof-check`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image_data: cvs.toDataURL('image/jpeg') })
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            image_data: cvs.toDataURL('image/jpeg')
+                        })
                     });
                     const data = await res.json();
 
@@ -297,7 +341,9 @@
                 try {
                     const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/request-permission`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({
                             name: name,
                             image_data: imageData
