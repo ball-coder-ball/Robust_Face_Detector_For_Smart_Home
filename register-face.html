@@ -1,31 +1,122 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Face Data Collection - บันทึกข้อมูลใบหน้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #1a1a1a; color: #ffffff; overflow-x: hidden; }
-        .hero-title { font-family: 'Crimson Text', serif; font-weight: 700; }
-        .gradient-text { background: linear-gradient(135deg, #00ff88, #00ccff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .camera-container { position: relative; border: 3px solid #00ff88; border-radius: 16px; overflow: hidden; background: #000; }
-        .capture-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 255, 136, 0.1); opacity: 0; transition: opacity 0.3s ease; }
-        .capture-overlay.active { opacity: 1; animation: flash 0.3s ease; }
-        @keyframes flash { 0%, 100% { opacity: 0.1; } 50% { opacity: 0.3; } }
-        .progress-bar { background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; height: 20px; }
-        .progress-fill { background: linear-gradient(90deg, #00ff88, #00ccff); height: 100%; border-radius: 10px; transition: width 0.3s ease; }
-        .btn-primary { background: linear-gradient(135deg, #00ff88, #00cc6a); border: none; color: #0a0a0a; font-weight: 600; padding: 16px 32px; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; width: 100%; }
-        .notification { position: fixed; top: 20px; right: 20px; padding: 16px 24px; border-radius: 8px; color: white; font-weight: 500; z-index: 1000; background: #00ff88; color: black; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .hero-title {
+            font-family: 'Crimson Text', serif;
+            font-weight: 700;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .camera-container {
+            position: relative;
+            border: 3px solid #00ff88;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .capture-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 255, 136, 0.1);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .capture-overlay.active {
+            opacity: 1;
+            animation: flash 0.3s ease;
+        }
+
+        @keyframes flash {
+
+            0%,
+            100% {
+                opacity: 0.1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #00ff88, #00ccff);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border: none;
+            color: #0a0a0a;
+            font-weight: 600;
+            padding: 16px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            background: #00ff88;
+            color: black;
+        }
+
+        /* Mirror */
+        #cameraFeed {
+            transform: scaleX(-1);
+        }
     </style>
 </head>
+
 <body>
     <main class="container mx-auto px-6 py-8">
         <div class="text-center mb-8">
             <h1 class="hero-title text-4xl md:text-5xl mb-4"><span class="gradient-text">บันทึกข้อมูลใบหน้า</span></h1>
-            <p class="text-xl text-gray-300">ระบบจะถ่ายภาพอัตโนมัติ 5 ภาพ</p>
+            <p class="text-xl text-gray-300">ระบบจะถ่ายภาพอัตโนมัติ 30 ภาพ</p>
         </div>
 
         <div class="grid lg:grid-cols-3 gap-8">
@@ -33,13 +124,14 @@
                 <div class="camera-container aspect-video relative mb-4">
                     <video id="cameraFeed" class="w-full h-full object-cover"></video>
                     <div class="capture-overlay" id="captureOverlay"></div>
-                    <div class="absolute top-4 left-4 bg-black bg-opacity-50 rounded-lg p-3 text-green-400 font-medium">กำลังบันทึก...</div>
+                    <div class="absolute top-4 left-4 bg-black bg-opacity-50 rounded-lg p-3 text-green-400 font-medium">
+                        กำลังบันทึก...</div>
                 </div>
-                
+
                 <div class="mb-4">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-sm text-gray-400">ความคืบหน้า</span>
-                        <span class="text-sm text-green-400" id="progressText">0/5 ภาพ</span>
+                        <span class="text-sm text-green-400" id="progressText">0/30 ภาพ</span>
                     </div>
                     <div class="progress-bar">
                         <div class="progress-fill" id="progressFill" style="width: 0%"></div>
@@ -60,7 +152,7 @@
 
     <script src="main.js"></script>
     <script>
-        const TOTAL_IMAGES = 5;
+        const TOTAL_IMAGES = 30;
         let capturedImages = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -84,8 +176,8 @@
             startBtn.addEventListener('click', async () => {
                 startBtn.disabled = true;
                 startBtn.textContent = "กำลังถ่ายภาพ...";
-                
-                for(let i=0; i<TOTAL_IMAGES; i++) {
+
+                for (let i = 0; i < TOTAL_IMAGES; i++) {
                     // Capture
                     const cvs = document.createElement('canvas');
                     cvs.width = video.videoWidth; cvs.height = video.videoHeight;
@@ -94,22 +186,22 @@
 
                     // UI Effect
                     document.getElementById('captureOverlay').classList.add('active');
-                    setTimeout(() => document.getElementById('captureOverlay').classList.remove('active'), 100);
+                    setTimeout(() => document.getElementById('captureOverlay').classList.remove('active'), 50);
 
                     // Update Progress
-                    const pct = ((i+1)/TOTAL_IMAGES)*100;
+                    const pct = ((i + 1) / TOTAL_IMAGES) * 100;
                     progressFill.style.width = `${pct}%`;
-                    progressText.textContent = `${i+1}/${TOTAL_IMAGES} ภาพ`;
+                    progressText.textContent = `${i + 1}/${TOTAL_IMAGES} ภาพ`;
 
-                    await new Promise(r => setTimeout(r, 800)); // Delay
+                    await new Promise(r => setTimeout(r, 150)); // Faster capture for 30 images
                 }
 
                 startBtn.textContent = "กำลังบันทึก...";
-                
+
                 // Send to Backend
                 const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/register-faces`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         user_id: uid,
                         name: name,
@@ -118,7 +210,7 @@
                 });
                 const data = await res.json();
 
-                if(data.success) {
+                if (data.success) {
                     faceSystem.showNotification('บันทึกเสร็จสิ้น! ไปหน้าสแกน', 'success');
                     setTimeout(() => window.location.href = 'scan.html', 2000);
                 } else {
@@ -129,4 +221,5 @@
         });
     </script>
 </body>
+
 </html>

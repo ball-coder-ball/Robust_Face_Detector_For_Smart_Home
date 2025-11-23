@@ -1,53 +1,223 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Home Face Registration - ระบบลงทะเบียนใบหน้าอัจฉริยะ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #1a1a1a; color: #ffffff; overflow-x: hidden; }
-        .hero-title { font-family: 'Crimson Text', serif; font-weight: 700; }
-        .gradient-text { background: linear-gradient(135deg, #00ff88, #00ccff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .security-shield { width: 120px; height: 120px; background: linear-gradient(135deg, #00ff88, #00aa55); border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 30px rgba(0, 255, 136, 0.3); }
-        .pulse-ring { border: 2px solid #00ff88; border-radius: 50%; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } }
-        .btn-primary { background: linear-gradient(135deg, #00ff88, #00cc6a); border: none; color: #0a0a0a; font-weight: 600; padding: 16px 32px; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3); }
-        .feature-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 24px; backdrop-filter: blur(10px); transition: all 0.3s ease; }
-        .feature-card:hover { transform: translateY(-5px); border-color: #00ff88; box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1); }
-        .notification { position: fixed; top: 20px; right: 20px; padding: 16px 24px; border-radius: 8px; color: white; font-weight: 500; z-index: 1000; transform: translateX(100%); transition: transform 0.3s ease; }
-        .hero-bg { background-image: url('hero-bg.jpg'); background-size: cover; background-position: center; background-attachment: fixed; }
-        .overlay { background: rgba(26, 26, 26, 0.8); }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .hero-title {
+            font-family: 'Crimson Text', serif;
+            font-weight: 700;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .security-shield {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #00ff88, #00aa55);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        .pulse-ring {
+            border: 2px solid #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.7;
+            }
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            border: none;
+            color: #0a0a0a;
+            font-weight: 600;
+            padding: 16px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3);
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #00ff88;
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .hero-bg {
+            background-image: url('hero-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        .overlay {
+            background: rgba(26, 26, 26, 0.8);
+        }
+
+        /* Loading Screen */
+        #loadingScreen {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader-circle {
+            width: 60px;
+            height: 60px;
+            border: 4px solid #333;
+            border-top: 4px solid #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Camera Mirror & Size */
+        #cameraFeed {
+            transform: scaleX(-1);
+        }
+
+        /* Mirror effect */
+        .camera-preview {
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+        }
     </style>
 </head>
+
 <body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+        <div class="loader-circle"></div>
+        <h2 class="text-2xl font-bold text-white mb-2">กำลังเตรียมระบบ AI...</h2>
+        <p class="text-gray-400">กรุณารอสักครู่</p>
+    </div>
+
     <section class="hero-bg min-h-screen relative">
         <div class="overlay min-h-screen flex items-center justify-center relative">
             <div class="container mx-auto px-6 text-center relative z-10">
                 <div class="security-shield mx-auto mb-8 relative">
                     <div class="pulse-ring absolute inset-0"></div>
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="M9 12l2 2 4-4"></path>
+                    </svg>
                 </div>
-                <h1 class="hero-title text-5xl md:text-7xl mb-6"><span class="gradient-text">Smart Home</span><br><span class="text-white">Face Registration</span></h1>
-                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">ระบบลงทะเบียนใบหน้าอัจฉริยะด้วย AI<br>ปลอดภัยด้วยการตรวจจับการปลอมแปลงใบหน้า</p>
-                
-                <div id="cameraSection" class="max-w-md mx-auto mb-12">
+                <h1 class="hero-title text-5xl md:text-7xl mb-6"><span class="gradient-text">Smart Home</span><br><span
+                        class="text-white">Face Registration</span></h1>
+                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">ระบบลงทะเบียนใบหน้าอัจฉริยะด้วย
+                    AI<br>ปลอดภัยด้วยการตรวจจับการปลอมแปลงใบหน้า</p>
+
+                <div id="cameraSection" class="max-w-2xl mx-auto mb-12"> <!-- Increased width -->
                     <div class="camera-preview aspect-video mb-6 relative hidden" id="camPreview">
-                        <video id="cameraFeed" class="w-full h-full object-cover rounded-lg"></video>
+                        <video id="cameraFeed" class="w-full h-full object-cover"></video>
+                        <div id="countdownOverlay"
+                            class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-8xl font-bold hidden">
+                            3</div>
                     </div>
-                    <button id="requestCameraBtn" class="btn-primary w-full text-lg">
+                    <button id="requestCameraBtn" class="btn-primary w-full text-lg max-w-md mx-auto block">
                         <span id="btnText">เริ่มต้นใช้งาน (ตรวจสอบ/ลงทะเบียน)</span>
-                        <div id="btnLoader" class="hidden w-6 h-6 border-2 border-gray-800 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <div id="btnLoader"
+                            class="hidden w-6 h-6 border-2 border-gray-800 border-t-transparent rounded-full animate-spin mx-auto">
+                        </div>
                     </button>
                 </div>
 
                 <div class="grid md:grid-cols-3 gap-8 mt-16 max-w-6xl mx-auto">
-                    <div class="feature-card"><h3 class="text-xl font-semibold mb-2 text-green-400">1. ตรวจสอบตัวตน</h3><p class="text-gray-400">ระบบเช็คฐานข้อมูลอัตโนมัติ</p></div>
-                    <div class="feature-card"><h3 class="text-xl font-semibold mb-2 text-blue-400">2. รอการอนุมัติ</h3><p class="text-gray-400">เจ้าของบ้านอนุมัติผ่าน LINE</p></div>
-                    <div class="feature-card"><h3 class="text-xl font-semibold mb-2 text-purple-400">3. สแกนเข้าบ้าน</h3><p class="text-gray-400">รวดเร็วและแม่นยำ</p></div>
+                    <div class="feature-card">
+                        <h3 class="text-xl font-semibold mb-2 text-green-400">1. ตรวจสอบตัวตน</h3>
+                        <p class="text-gray-400">ระบบเช็คฐานข้อมูลอัตโนมัติ</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="text-xl font-semibold mb-2 text-blue-400">2. รอการอนุมัติ</h3>
+                        <p class="text-gray-400">เจ้าของบ้านอนุมัติผ่าน LINE</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="text-xl font-semibold mb-2 text-purple-400">3. สแกนเข้าบ้าน</h3>
+                        <p class="text-gray-400">รวดเร็วและแม่นยำ</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -55,12 +225,37 @@
 
     <script src="main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const requestBtn = document.getElementById('requestCameraBtn');
             const btnText = document.getElementById('btnText');
             const btnLoader = document.getElementById('btnLoader');
             const camPreview = document.getElementById('camPreview');
             const video = document.getElementById('cameraFeed');
+            const loadingScreen = document.getElementById('loadingScreen');
+            const countdownOverlay = document.getElementById('countdownOverlay');
+
+            // 1. Check Backend Health (Loading Screen)
+            try {
+                // Poll until backend is ready or timeout
+                let attempts = 0;
+                const checkHealth = async () => {
+                    try {
+                        const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/health`);
+                        if (res.ok) return true;
+                    } catch (e) { }
+                    return false;
+                };
+
+                while (attempts < 10) { // Try for ~10 seconds
+                    if (await checkHealth()) break;
+                    await new Promise(r => setTimeout(r, 1000));
+                    attempts++;
+                }
+            } catch (e) { console.log("Health check skipped/failed"); }
+
+            // Hide loading screen
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => loadingScreen.remove(), 500);
 
             requestBtn.addEventListener('click', async () => {
                 btnText.textContent = 'กำลังเปิดกล้อง...';
@@ -71,24 +266,39 @@
                     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                     video.srcObject = stream;
                     video.play();
-                    
-                    // ซ่อน Preview ไว้ก่อน (หรือจะโชว์ก็ได้) แต่เราจะถ่ายรูปเลย
+
+                    // Show Preview IMMEDIATELY
+                    camPreview.classList.remove('hidden');
+
+                    // Countdown 3..2..1
+                    btnText.textContent = 'กรุณามองกล้อง...';
+                    for (let i = 3; i > 0; i--) {
+                        countdownOverlay.textContent = i;
+                        countdownOverlay.classList.remove('hidden');
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                    countdownOverlay.classList.add('hidden');
+
                     btnText.textContent = 'กำลังตรวจสอบใบหน้า...';
-                    await new Promise(r => setTimeout(r, 1500)); // รอโฟกัส
+                    await new Promise(r => setTimeout(r, 500)); // Small buffer
 
                     const canvas = document.createElement('canvas');
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
+                    // Draw mirrored image if needed, but usually for backend analysis raw is fine. 
+                    // However, to match user expectation of "mirror", we might want to flip it before sending?
+                    // Actually, standard practice is to send raw image, but display mirrored.
+                    // Let's send raw image.
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     const frame = canvas.toDataURL('image/jpeg');
 
-                    // ปิดกล้อง
+                    // Stop Camera
                     stream.getTracks().forEach(t => t.stop());
 
-                    // ส่งเช็ค Backend
+                    // Send to Backend
                     const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/check-face-existence`, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ image_data: frame })
                     });
                     const data = await res.json();
@@ -111,4 +321,5 @@
         });
     </script>
 </body>
+
 </html>

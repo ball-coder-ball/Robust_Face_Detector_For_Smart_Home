@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +8,32 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { background: #1a1a1a; color: white; font-family: 'Inter'; }
-        .btn-primary { background: linear-gradient(135deg, #00ff88, #00cc6a); padding: 12px; border-radius: 8px; color: black; font-weight: bold; width: 100%; }
-        .btn-disabled { opacity: 0.5; cursor: not-allowed; }
-        .face-overlay.detected { border-color: #00ff88; }
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Inter';
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            padding: 12px;
+            border-radius: 8px;
+            color: black;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        .btn-disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .face-overlay.detected {
+            border-color: #00ff88;
+        }
     </style>
 </head>
+
 <body>
     <main class="container mx-auto px-6 py-8">
         <div class="text-center mb-8">
@@ -21,7 +42,8 @@
 
         <div class="max-w-2xl mx-auto mb-8 bg-black rounded-xl overflow-hidden border border-gray-700 relative">
             <video id="cameraFeed" class="w-full h-64 object-cover"></video>
-            <div id="faceOverlay" class="absolute inset-0 border-4 border-transparent transition-colors duration-300"></div>
+            <div id="faceOverlay" class="absolute inset-0 border-4 border-transparent transition-colors duration-300">
+            </div>
             <div class="absolute bottom-4 w-full text-center text-white font-bold" id="statusMessage">พร้อมใช้งาน</div>
         </div>
 
@@ -31,9 +53,11 @@
 
         <div id="nameFormSection" class="max-w-md mx-auto mt-8 hidden bg-gray-800 p-6 rounded-xl">
             <h3 class="text-xl font-bold mb-4 text-center">ผ่านการตรวจสอบ!</h3>
-            <input type="text" id="userName" class="w-full p-3 rounded bg-gray-700 text-white mb-4 border border-gray-600" placeholder="กรอกชื่อของคุณ" required>
+            <input type="text" id="userName"
+                class="w-full p-3 rounded bg-gray-700 text-white mb-4 border border-gray-600"
+                placeholder="กรอกชื่อของคุณ" required>
             <button id="submitNameBtn" class="btn-primary">2. ขออนุมัติจากเจ้าของบ้าน</button>
-            
+
             <!-- Debug Status Text: Shows current polling status -->
             <div id="statusLog" class="mt-4 text-xs font-mono text-yellow-400 text-center hidden">
                 Initializing...
@@ -54,13 +78,13 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 video.srcObject = stream;
                 video.play();
-            } catch(e) { alert('Camera Error: ' + e.message); }
+            } catch (e) { alert('Camera Error: ' + e.message); }
 
             // 1. Spoof Check
             startBtn.addEventListener('click', async () => {
                 startBtn.disabled = true;
                 startBtn.textContent = "กำลังตรวจสอบ...";
-                
+
                 const cvs = document.createElement('canvas');
                 cvs.width = video.videoWidth; cvs.height = video.videoHeight;
                 cvs.getContext('2d').drawImage(video, 0, 0);
@@ -68,12 +92,12 @@
                 try {
                     const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/spoof-check`, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ image_data: cvs.toDataURL('image/jpeg') })
                     });
                     const data = await res.json();
 
-                    if(data.is_real) {
+                    if (data.is_real) {
                         document.getElementById('statusMessage').textContent = "ผ่าน ✅";
                         document.getElementById('faceOverlay').classList.add('detected');
                         nameForm.classList.remove('hidden');
@@ -82,7 +106,7 @@
                         startBtn.disabled = false;
                         startBtn.textContent = "ลองใหม่ (พบความเสี่ยง)";
                     }
-                } catch(e) {
+                } catch (e) {
                     alert("Connection Error: " + e.message);
                     startBtn.disabled = false;
                 }
@@ -91,12 +115,12 @@
             // 2. Request & Poll Logic
             submitBtn.addEventListener('click', async () => {
                 const name = document.getElementById('userName').value;
-                if(!name) return alert("กรุณากรอกชื่อ");
+                if (!name) return alert("กรุณากรอกชื่อ");
 
                 submitBtn.disabled = true;
                 submitBtn.textContent = "ส่งคำขอแล้ว... กรุณารอ";
                 submitBtn.classList.add('btn-disabled');
-                
+
                 statusLog.classList.remove('hidden');
                 statusLog.textContent = "Sending request...";
 
@@ -104,19 +128,19 @@
                     // 2.1 Send Request
                     const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/request-permission`, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name: name })
                     });
-                    
+
                     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-                    
+
                     const data = await res.json();
 
-                    if(data.success) {
+                    if (data.success) {
                         const userId = data.user_id;
                         let count = 0;
                         let errorCount = 0; // นับจำนวน error ต่อเนื่อง
-                        
+
                         // 2.2 Start Polling
                         console.log(`Start polling for user: ${userId}`);
                         statusLog.textContent = "Waiting for approval...";
@@ -125,7 +149,7 @@
                             count++;
                             try {
                                 const stRes = await fetch(`${faceSystem.apiBaseUrl}/api/v1/check-approval-status/${userId}`);
-                                
+
                                 // ถ้า Server มีปัญหา (เช่น 502 Bad Gateway) ให้ข้ามรอบนี้ไปก่อน
                                 if (!stRes.ok) {
                                     throw new Error(`Server returned ${stRes.status}`);
@@ -133,16 +157,16 @@
 
                                 const stData = await stRes.json();
                                 errorCount = 0; // Reset error count เมื่อเชื่อมต่อสำเร็จ
-                                
+
                                 // Update UI
                                 statusLog.textContent = `Check #${count}: ID ${userId} is [${stData.status}]`;
                                 statusLog.className = "mt-4 text-xs font-mono text-yellow-400 text-center"; // Reset color
 
-                                if(stData.status === 'approved') {
+                                if (stData.status === 'approved') {
                                     clearInterval(poll);
                                     statusLog.textContent = "✅ อนุมัติแล้ว! กำลังย้ายหน้า...";
                                     statusLog.className = "mt-4 text-xs font-mono text-green-400 text-center font-bold";
-                                    
+
                                     setTimeout(() => {
                                         window.location.href = `register-face.html?user_id=${userId}&name=${encodeURIComponent(name)}`;
                                     }, 1000);
@@ -154,7 +178,7 @@
                                     alert("คำขอถูกปฏิเสธ");
                                     window.location.reload();
                                 }
-                            } catch(err) {
+                            } catch (err) {
                                 console.error("Polling Error:", err);
                                 errorCount++;
                                 statusLog.textContent = `Connection unstable... retrying (${errorCount})`;
@@ -169,7 +193,7 @@
                             }
                         }, 2000); // Check every 2 seconds
                     }
-                } catch(e) {
+                } catch (e) {
                     console.error(e);
                     statusLog.textContent = "Error: " + e.message;
                     statusLog.className = "mt-4 text-xs font-mono text-red-500 text-center";
@@ -182,4 +206,5 @@
         });
     </script>
 </body>
+
 </html>

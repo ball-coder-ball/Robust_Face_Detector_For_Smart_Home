@@ -6,9 +6,11 @@ import os
 import io
 import nest_asyncio
 import gdown 
+import uuid
 from pyngrok import ngrok
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List
 from deepface import DeepFace
@@ -25,7 +27,7 @@ warnings.filterwarnings("ignore")
 
 # --- LINE SDK ---
 from linebot import LineBotApi, WebhookHandler
-from linebot.models import TextSendMessage, TemplateSendMessage, ButtonsTemplate, PostbackAction
+from linebot.models import TextSendMessage, TemplateSendMessage, ButtonsTemplate, PostbackAction, URIAction
 from linebot.exceptions import InvalidSignatureError
 from linebot.models.events import PostbackEvent
 
@@ -138,13 +140,17 @@ app.add_middleware(
     allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
 
+# Mount Static for Temp Images
+if not os.path.exists("static"): os.makedirs("static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 DB_PATH = "database"
 if not os.path.exists(DB_PATH): os.makedirs(DB_PATH)
 MODEL_NAME = "VGG-Face"
 DETECTOR_BACKEND = "opencv"
+PUBLIC_URL = ""
 
 # 🔥🔥 GLOBAL DATABASE FOR USER STATUS 🔥🔥
-# สำคัญมาก: ต้องใช้ตัวแปรนี้แชร์กันระหว่าง Webhook กับ API
 user_status_db = {} 
 known_face_db = {}
 
@@ -178,6 +184,14 @@ known_face_db = load_known_faces()
 def calculate_cosine_similarity(v1, v2):
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
+# 🔥 PRE-LOAD DEEPFACE MODEL 🔥
+print("⏳ Warming up DeepFace model...")
+try:
+    DeepFace.build_model(MODEL_NAME)
+    print("✅ DeepFace VGG-Face Warmed Up!")
+except Exception as e:
+    print(f"⚠️ DeepFace Warmup Failed: {e}")
+
 class RequestModel(BaseModel):
     image_data: str = None
     name: str = None
@@ -187,6 +201,10 @@ class RequestModel(BaseModel):
 # ==========================================
 # 🔌 API ENDPOINTS
 # ==========================================
+
+@app.get("/api/v1/health")
+async def health_check():
+    return {"status": "ok", "models_loaded": True}
 
 @app.post("/api/v1/spoof-check")
 async def spoof_check(req: RequestModel):
@@ -227,6 +245,19 @@ async def request_permission(req: RequestModel):
     user_status_db[user_id] = "pending" 
     print(f"👉 [REQ] Created ID: {user_id} | Status: {user_status_db[user_id]}")
 
+    # 2. Save Image for LINE
+    image_url = "https://via.placeholder.com/300" # Default
+    if req.image_data and PUBLIC_URL:
+        try:
+            img = base64_to_pil_image(req.image_data)
+            fname = f"temp_{user_id}.jpg"
+            save_path = os.path.join("static", fname)
+            img.save(save_path)
+            image_url = f"{PUBLIC_URL}/static/{fname}"
+            print(f"📸 Image saved: {image_url}")
+        except Exception as e:
+            print(f"⚠️ Image save failed: {e}")
+
     if not line_bot_api: return {"success": True, "user_id": user_id, "mock": True}
     
     try:
@@ -236,7 +267,14 @@ async def request_permission(req: RequestModel):
         ]
         template = TemplateSendMessage(
             alt_text="คำขอลงทะเบียน",
-            template=ButtonsTemplate(title=f"คำขอ: {req.name}", text=f"ID: {user_id}", actions=actions)
+            template=ButtonsTemplate(
+                thumbnail_image_url=image_url,
+                image_aspect_ratio="rectangle",
+                image_size="cover",
+                title=f"คำขอ: {req.name}",
+                text=f"ID: {user_id}",
+                actions=actions
+            )
         )
         line_bot_api.push_message(LINE_HOST_USER_ID, template)
     except Exception as e: print(f"LINE Error: {e}")
@@ -247,7 +285,7 @@ async def request_permission(req: RequestModel):
 async def check_approval_status(user_id: str):
     # ดึงสถานะปัจจุบันจาก Dict
     status = user_status_db.get(user_id, "pending")
-    print(f"🔍 [POLL] Checking {user_id} -> Status: {status}") # Debug Log ให้เห็นใน Colab
+    # print(f"🔍 [POLL] Checking {user_id} -> Status: {status}") 
     return {"status": status}
 
 @app.post("/api/v1/register-faces")
@@ -268,6 +306,16 @@ async def register_faces(req: RequestModel):
 @app.post("/api/v1/scan-face")
 async def scan_face(req: RequestModel):
     try:
+        # 1. Spoof Check First
+        spoof_res = await spoof_check(req)
+        if not spoof_res["is_real"]:
+             return {
+                 "is_match": False, 
+                 "reason": "spoof_detected", 
+                 "spoof_confidence": spoof_res["confidence"]
+             }
+
+        # 2. Recognition
         img = base64_to_cv2_image(req.image_data)
         objs = DeepFace.represent(img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=True)
         if not objs: return {"is_match": False, "reason": "no_face"}
@@ -277,7 +325,13 @@ async def scan_face(req: RequestModel):
             for db_emb in db_embs:
                 score = calculate_cosine_similarity(target_emb, db_emb)
                 if score > best_score: best_score = score; best_name = name
-        if best_score > 0.60: return {"is_match": True, "user": {"name": best_name}, "confidence": float(best_score)}
+        if best_score > 0.60: 
+            return {
+                "is_match": True, 
+                "user": {"name": best_name}, 
+                "confidence": float(best_score),
+                "spoof_confidence": spoof_res["confidence"]
+            }
         else: return {"is_match": False, "reason": "unknown"}
     except: return {"is_match": False, "reason": "error"}
 
@@ -318,7 +372,8 @@ else:
         ngrok.set_auth_token(NGROK_AUTH_TOKEN)
         ngrok.kill()
         tunnel = ngrok.connect(8000)
-        print("Public URL:", tunnel.public_url)
+        PUBLIC_URL = tunnel.public_url
+        print("Public URL:", PUBLIC_URL)
         uvicorn.run(app, port=8000)
     except Exception as e:
         print(f"Ngrok Error: {e}")

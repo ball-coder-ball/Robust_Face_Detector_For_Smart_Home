@@ -1,17 +1,17 @@
 class FaceRegistrationSystem {
     constructor() {
         // ⚠️⚠️ อย่าลืมแก้ URL ตรงนี้เป็นของ ngrok ล่าสุดจาก Colab ⚠️⚠️
-        this.apiBaseUrl = 'https://alma-unvirulent-lanita.ngrok-free.dev'; 
+        this.apiBaseUrl = 'https://alma-unvirulent-lanita.ngrok-free.dev';
     }
 
-    generateJWT(userId) { 
-        return btoa(JSON.stringify({ userId, exp: Date.now() + 86400000 })); 
+    generateJWT(userId) {
+        return btoa(JSON.stringify({ userId, exp: Date.now() + 86400000 }));
     }
-    
-    verifyJWT(token) { 
-        try { return JSON.parse(atob(token)).exp > Date.now(); } catch { return false; } 
+
+    verifyJWT(token) {
+        try { return JSON.parse(atob(token)).exp > Date.now(); } catch { return false; }
     }
-    
+
     showNotification(message, type = 'info') {
         const div = document.createElement('div');
         div.className = 'notification';
@@ -29,7 +29,7 @@ class FaceRegistrationSystem {
 
 // --- OVERRIDE FETCH เพื่อแก้ปัญหา Ngrok Warning ---
 const originalFetch = window.fetch;
-window.fetch = function(url, options = {}) {
+window.fetch = function (url, options = {}) {
     // ถ้า URL เป็นของ ngrok ให้เพิ่ม Header พิเศษ
     if (url.includes('ngrok')) {
         if (!options.headers) {
@@ -37,12 +37,12 @@ window.fetch = function(url, options = {}) {
         }
         // วิธีที่ 1: เพิ่ม Header (สำหรับ ngrok บางเวอร์ชัน)
         // options.headers['ngrok-skip-browser-warning'] = 'true'; 
-        
+
         // วิธีที่ 2: หรือถ้าเป็น object Header แบบนี้
         if (options.headers instanceof Headers) {
-             options.headers.append('ngrok-skip-browser-warning', 'true');
+            options.headers.append('ngrok-skip-browser-warning', 'true');
         } else {
-             options.headers['ngrok-skip-browser-warning'] = 'true';
+            options.headers['ngrok-skip-browser-warning'] = 'true';
         }
     }
     return originalFetch(url, options);
