@@ -339,6 +339,8 @@
                         });
                         const data = await res.json();
 
+                        if (!isScanning) return;
+
                         if (data.is_match) {
                             clearInterval(scanInterval);
                             isScanning = false;
