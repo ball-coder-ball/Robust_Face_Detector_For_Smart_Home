@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Face Scanning - สแกนใบหน้า</title>
+    <title>Scan Face - Smart Home</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap"
@@ -15,7 +15,6 @@
             background-color: #0f172a;
             color: white;
             overflow-x: hidden;
-            margin: 0;
         }
 
         .mesh-bg {
@@ -28,50 +27,6 @@
             background: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
                 radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
                 radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
-        }
-
-        .mesh-blob {
-            position: absolute;
-            filter: blur(80px);
-            opacity: 0.6;
-            animation: float 10s infinite ease-in-out alternate;
-        }
-
-        .blob-1 {
-            top: 10%;
-            left: 20%;
-            width: 400px;
-            height: 400px;
-            background: #4f46e5;
-            animation-delay: 0s;
-        }
-
-        .blob-2 {
-            bottom: 20%;
-            right: 10%;
-            width: 350px;
-            height: 350px;
-            background: #db2777;
-            animation-delay: -2s;
-        }
-
-        .blob-3 {
-            top: 40%;
-            left: 60%;
-            width: 300px;
-            height: 300px;
-            background: #06b6d4;
-            animation-delay: -4s;
-        }
-
-        @keyframes float {
-            0% {
-                transform: translate(0, 0) scale(1);
-            }
-
-            100% {
-                transform: translate(30px, 50px) scale(1.1);
-            }
         }
 
         .glass-card {
@@ -94,35 +49,38 @@
             filter: brightness(1.1);
         }
 
-        .btn-gradient.scanning {
-            background: linear-gradient(135deg, #eab308 0%, #f97316 100%);
-            animation: pulse-orange 2s infinite;
+        .btn-gradient:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        @keyframes pulse-orange {
+        .btn-gradient.scanning {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
             0% {
-                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
             }
 
             70% {
-                box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+                box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
             }
 
             100% {
-                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
             }
-        }
-
-        #cameraFeed {
-            transform: scaleX(-1);
         }
 
         .scan-line {
             position: absolute;
             width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, transparent, #06b6d4, transparent);
-            box-shadow: 0 0 15px #06b6d4;
+            height: 2px;
+            background: #06b6d4;
+            box-shadow: 0 0 10px #06b6d4, 0 0 20px #06b6d4;
             animation: scan-vertical 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
             display: none;
         }
@@ -282,7 +240,6 @@
             });
         });
 
-        let scanInterval;
         let isScanning = false;
         let stats = JSON.parse(localStorage.getItem('smartHomeStats')) || { access: 0, spoof: 0 };
 
@@ -326,7 +283,9 @@
                 document.getElementById('scanLine').style.display = 'block';
                 document.getElementById('accessStatus').classList.remove('show');
 
-                scanInterval = setInterval(async () => {
+                const scanLoop = async () => {
+                    if (!isScanning) return;
+
                     const cvs = document.createElement('canvas');
                     cvs.width = video.videoWidth; cvs.height = video.videoHeight;
                     cvs.getContext('2d').drawImage(video, 0, 0);
@@ -340,7 +299,6 @@
                         const data = await res.json();
 
                         if (data.is_match) {
-                            clearInterval(scanInterval);
                             isScanning = false;
 
                             const statusEl = document.getElementById('accessStatus');
@@ -370,7 +328,6 @@
                             setTimeout(() => window.location.href = 'index.html', 3000);
 
                         } else if (data.reason === 'spoof_detected') {
-                            clearInterval(scanInterval);
                             isScanning = false;
 
                             const statusEl = document.getElementById('accessStatus');
@@ -398,7 +355,10 @@
                             log("Spoof Attempt Detected", 'error');
                         }
                     } catch (e) { console.log(e); }
-                }, 1000);
+
+                    if (isScanning) setTimeout(scanLoop, 1000);
+                };
+                scanLoop();
             });
         });
     </script>
