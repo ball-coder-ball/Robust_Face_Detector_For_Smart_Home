@@ -34,7 +34,7 @@ from linebot.models.events import PostbackEvent
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-LINE_CHANNEL_ACCESS_TOKEN = 'yMTfcTZoEaG2kSZMDtUCVT5I8S47c0APKUNUtRvFfIVfAj+005EixdA9iDJPDReJaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfoMo279kisRv1hsKM6K+0Me32GvqQvG07qCPMXuHda9QdB04t89/1O/w1cDnyilFU='
+LINE_CHANNEL_ACCESS_TOKEN = 'uN65Uh43/s9MDQXmPxQHaCsU2I/Fz7JA9cm+qd1Gq2CDLcRpoV7FNMAW1My1XMNEaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSezswAP1KKCoUFVpMt83dQVLEoBKdMa7hA/FhRoi3wowwdB04t89/1O/w1cDnyilFU='
 LINE_CHANNEL_SECRET = 'b8c65e65a4ead4ef817d7c66f2832e0c'
 LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
 
@@ -240,6 +240,7 @@ async def check_face_existence(req: RequestModel):
 
 @app.post("/api/v1/request-permission")
 async def request_permission(req: RequestModel):
+    global PUBLIC_URL
     # 1. สร้าง ID และตั้งสถานะเป็น pending ทันที
     user_id = f"user_{np.random.randint(10000, 99999)}"
     user_status_db[user_id] = "pending" 
