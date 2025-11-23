@@ -34,7 +34,7 @@ from linebot.models.events import PostbackEvent
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-LINE_CHANNEL_ACCESS_TOKEN = 'LXHZXdXNkTbDuNhXF03TloNz+nWrs+h8u+dNKanERvvDnhIo+//4vue/4dYhOUQaaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfpbhRiCq012IB4NcOXUNdcLcR/SHhfyVaZR2+s+pZWoAdB04t89/1O/w1cDnyilFU='
+LINE_CHANNEL_ACCESS_TOKEN = 'yMTfcTZoEaG2kSZMDtUCVT5I8S47c0APKUNUtRvFfIVfAj+005EixdA9iDJPDReJaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfoMo279kisRv1hsKM6K+0Me32GvqQvG07qCPMXuHda9QdB04t89/1O/w1cDnyilFU='
 LINE_CHANNEL_SECRET = 'b8c65e65a4ead4ef817d7c66f2832e0c'
 LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
 
@@ -80,7 +80,6 @@ class SpoofNet(nn.Module):
 # Loading
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 spoof_model = None
-MODELS_READY = False
 
 preprocess_transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -123,6 +122,8 @@ def load_pytorch_model():
             print(f"❌ Model file not found")
     except Exception as e:
         print(f"❌ Error loading model: {e}")
+
+load_pytorch_model()
 
 # ==========================================
 # 🚀 APP SETUP & DB
@@ -183,54 +184,13 @@ known_face_db = load_known_faces()
 def calculate_cosine_similarity(v1, v2):
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
-# 🔥 BACKGROUND MODEL LOADING & INIT 🔥
-import threading
-def load_models_task():
-    global MODELS_READY
-    print("⏳ Warming up DeepFace model (Background)...")
-    try:
-        DeepFace.build_model(MODEL_NAME)
-        print("✅ DeepFace VGG-Face Warmed Up!")
-    except Exception as e:
-        print(f"⚠️ DeepFace Warmup Failed: {e}")
-    
-    load_pytorch_model()
-    MODELS_READY = True
-    print("🚀 ALL MODELS READY!")
-
-def verify_line_token():
-    if not line_bot_api: return
-    try:
-        print("🔍 Verifying LINE Token...")
-        # Try to get bot info to verify token
-        line_bot_api.get_bot_info()
-        print("✅ LINE Token is VALID!")
-    except Exception as e:
-        print(f"❌ LINE Token INVALID: {e}")
-        print("⚠️ Please check LINE_CHANNEL_ACCESS_TOKEN in backend_main.py")
-
-@app.on_event("startup")
-async def startup_event():
-    # 1. Start Model Loading
-    threading.Thread(target=load_models_task).start()
-    
-    # 2. Verify LINE Token
-    verify_line_token()
-
-    # 3. Start Ngrok
-    global PUBLIC_URL
-    if NGROK_AUTH_TOKEN == 'YOUR_NGROK_AUTH_TOKEN_HERE':
-        print("\n⚠️ NGROK Token not set. Image sending will fail.\n")
-    else:
-        try:
-            ngrok.set_auth_token(NGROK_AUTH_TOKEN)
-            # Kill existing tunnels to avoid duplicates
-            ngrok.kill()
-            tunnel = ngrok.connect(8000)
-            PUBLIC_URL = tunnel.public_url
-            print(f"🌍 Ngrok Public URL: {PUBLIC_URL}")
-        except Exception as e:
-            print(f"❌ Ngrok Error: {e}")
+# 🔥 PRE-LOAD DEEPFACE MODEL 🔥
+print("⏳ Warming up DeepFace model...")
+try:
+    DeepFace.build_model(MODEL_NAME)
+    print("✅ DeepFace VGG-Face Warmed Up!")
+except Exception as e:
+    print(f"⚠️ DeepFace Warmup Failed: {e}")
 
 class RequestModel(BaseModel):
     image_data: str = None
@@ -244,7 +204,7 @@ class RequestModel(BaseModel):
 
 @app.get("/api/v1/health")
 async def health_check():
-    return {"status": "ok", "models_loaded": MODELS_READY}
+    return {"status": "ok", "models_loaded": True}
 
 @app.post("/api/v1/spoof-check")
 async def spoof_check(req: RequestModel):
@@ -264,7 +224,6 @@ async def spoof_check(req: RequestModel):
 
 @app.post("/api/v1/check-face-existence")
 async def check_face_existence(req: RequestModel):
-    if not MODELS_READY: return {"found": False, "error": "Models not ready"}
     try:
         img = base64_to_cv2_image(req.image_data)
         objs = DeepFace.represent(img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=False)
@@ -294,14 +253,10 @@ async def request_permission(req: RequestModel):
             fname = f"temp_{user_id}.jpg"
             save_path = os.path.join("static", fname)
             img.save(save_path)
-            # Ensure PUBLIC_URL doesn't have trailing slash
-            clean_public_url = PUBLIC_URL.rstrip("/")
-            image_url = f"{clean_public_url}/static/{fname}"
+            image_url = f"{PUBLIC_URL}/static/{fname}"
             print(f"📸 Image saved: {image_url}")
         except Exception as e:
             print(f"⚠️ Image save failed: {e}")
-    else:
-        print(f"⚠️ No image data or PUBLIC_URL missing. URL: '{PUBLIC_URL}'")
 
     if not line_bot_api: return {"success": True, "user_id": user_id, "mock": True}
     
@@ -322,8 +277,7 @@ async def request_permission(req: RequestModel):
             )
         )
         line_bot_api.push_message(LINE_HOST_USER_ID, template)
-    except Exception as e: 
-        print(f"❌ LINE Error: {e}")
+    except Exception as e: print(f"LINE Error: {e}")
     
     return {"success": True, "user_id": user_id}
 
@@ -351,7 +305,6 @@ async def register_faces(req: RequestModel):
 
 @app.post("/api/v1/scan-face")
 async def scan_face(req: RequestModel):
-    if not MODELS_READY: return {"is_match": False, "reason": "loading"}
     try:
         # 1. Spoof Check First
         spoof_res = await spoof_check(req)
@@ -411,6 +364,16 @@ def handle_postback(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg_text))
 
 # Run
-if __name__ == "__main__":
-    nest_asyncio.apply()
-    uvicorn.run(app, port=8000)
+nest_asyncio.apply()
+if NGROK_AUTH_TOKEN == 'YOUR_NGROK_AUTH_TOKEN_HERE':
+    print("\n⚠️ กรุณาใส่ Ngrok Token ก่อนรันครับ!\n")
+else:
+    try:
+        ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+        ngrok.kill()
+        tunnel = ngrok.connect(8000)
+        PUBLIC_URL = tunnel.public_url
+        print("Public URL:", PUBLIC_URL)
+        uvicorn.run(app, port=8000)
+    except Exception as e:
+        print(f"Ngrok Error: {e}")
