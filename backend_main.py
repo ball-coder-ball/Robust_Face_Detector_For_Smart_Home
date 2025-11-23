@@ -217,57 +217,6 @@ async def check_face_existence(req: RequestModel):
         for name, data in known_face_db.items():
             for db_emb in data["embeddings"]:
                 if calculate_cosine_similarity(target_emb, db_emb) > 0.60:
-                    found_user = name; break
-            if found_user: break
-        return {"found": True, "name": found_user} if found_user else {"found": False}
-    except: return {"found": False}
-
-@app.post("/api/v1/request-permission")
-async def request_permission(req: RequestModel):
-    global PUBLIC_URL
-    user_id = f"user_{np.random.randint(10000, 99999)}"
-    user_status_db[user_id] = "pending" 
-    print(f"👉 [REQ] Created ID: {user_id} | Status: {user_status_db[user_id]}")
-
-    image_url = "https://via.placeholder.com/300"
-    if req.image_data and PUBLIC_URL:
-        try:
-            img = base64_to_pil_image(req.image_data)
-            fname = f"temp_{user_id}.jpg"
-            save_path = os.path.join("static", fname)
-            img.save(save_path)
-            image_url = f"{PUBLIC_URL}/static/{fname}"
-            print(f"📸 Image saved: {image_url}")
-        except Exception as e:
-            print(f"⚠️ Image save failed: {e}")
-
-    if not line_bot_api: return {"success": True, "user_id": user_id, "mock": True}
-    
-    try:
-        actions = [
-            PostbackAction(label="อนุมัติ", data=f"action=approve&user_id={user_id}"),
-            PostbackAction(label="ปฏิเสธ", data=f"action=reject&user_id={user_id}")
-        ]
-        template = TemplateSendMessage(
-            alt_text="คำขอลงทะเบียน",
-            template=ButtonsTemplate(
-                thumbnail_image_url=image_url,
-                image_aspect_ratio="rectangle",
-                image_size="cover",
-                title=f"คำขอ: {req.name}",
-                text=f"ID: {user_id}",
-                actions=actions
-            )
-        )
-        line_bot_api.push_message(LINE_HOST_USER_ID, template)
-    except Exception as e: print(f"LINE Error: {e}")
-    
-    return {"success": True, "user_id": user_id}
-
-@app.get("/api/v1/check-approval-status/{user_id}")
-async def check_approval_status(user_id: str):
-    status = user_status_db.get(user_id, "pending")
-    return {"status": status}
 
 @app.post("/api/v1/register-faces")
 async def register_faces(req: RequestModel):
