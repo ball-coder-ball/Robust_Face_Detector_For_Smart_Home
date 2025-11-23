@@ -34,7 +34,7 @@ from linebot.models.events import PostbackEvent
 # ==========================================
 # ⚙️ CONFIGURATION
 # ==========================================
-LINE_CHANNEL_ACCESS_TOKEN = 'LXHZXdXNkTbDuNhXF03TloNz+nWrs+h8u+dNKanERvvDnhIo+//4vue/4dYhOUVQaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfpbhRiCq012IB4NcOXUNdcLcR/SHhfyVaZR2+s+pZWoAdB04t89/1O/w1cDnyilFU='
+LINE_CHANNEL_ACCESS_TOKEN = 'LXHZXdXNkTbDuNhXF03TloNz+nWrs+h8u+dNKanERvvDnhIo+//4vue/4dYhOUQaaM8snIwnjMgPJ3B/rYru1Fr6/veFTAhga+DXB/97zSfpbhRiCq012IB4NcOXUNdcLcR/SHhfyVaZR2+s+pZWoAdB04t89/1O/w1cDnyilFU='
 LINE_CHANNEL_SECRET = 'b8c65e65a4ead4ef817d7c66f2832e0c'
 LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
 
@@ -183,7 +183,7 @@ known_face_db = load_known_faces()
 def calculate_cosine_similarity(v1, v2):
     return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
 
-# 🔥 BACKGROUND MODEL LOADING 🔥
+# 🔥 BACKGROUND MODEL LOADING & INIT 🔥
 import threading
 def load_models_task():
     global MODELS_READY
@@ -198,9 +198,39 @@ def load_models_task():
     MODELS_READY = True
     print("🚀 ALL MODELS READY!")
 
+def verify_line_token():
+    if not line_bot_api: return
+    try:
+        print("🔍 Verifying LINE Token...")
+        # Try to get bot info to verify token
+        line_bot_api.get_bot_info()
+        print("✅ LINE Token is VALID!")
+    except Exception as e:
+        print(f"❌ LINE Token INVALID: {e}")
+        print("⚠️ Please check LINE_CHANNEL_ACCESS_TOKEN in backend_main.py")
+
 @app.on_event("startup")
 async def startup_event():
+    # 1. Start Model Loading
     threading.Thread(target=load_models_task).start()
+    
+    # 2. Verify LINE Token
+    verify_line_token()
+
+    # 3. Start Ngrok
+    global PUBLIC_URL
+    if NGROK_AUTH_TOKEN == 'YOUR_NGROK_AUTH_TOKEN_HERE':
+        print("\n⚠️ NGROK Token not set. Image sending will fail.\n")
+    else:
+        try:
+            ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+            # Kill existing tunnels to avoid duplicates
+            ngrok.kill()
+            tunnel = ngrok.connect(8000)
+            PUBLIC_URL = tunnel.public_url
+            print(f"🌍 Ngrok Public URL: {PUBLIC_URL}")
+        except Exception as e:
+            print(f"❌ Ngrok Error: {e}")
 
 class RequestModel(BaseModel):
     image_data: str = None
@@ -271,7 +301,7 @@ async def request_permission(req: RequestModel):
         except Exception as e:
             print(f"⚠️ Image save failed: {e}")
     else:
-        print(f"⚠️ No image data or PUBLIC_URL missing. URL: {PUBLIC_URL}")
+        print(f"⚠️ No image data or PUBLIC_URL missing. URL: '{PUBLIC_URL}'")
 
     if not line_bot_api: return {"success": True, "user_id": user_id, "mock": True}
     
@@ -292,7 +322,8 @@ async def request_permission(req: RequestModel):
             )
         )
         line_bot_api.push_message(LINE_HOST_USER_ID, template)
-    except Exception as e: print(f"LINE Error: {e}")
+    except Exception as e: 
+        print(f"❌ LINE Error: {e}")
     
     return {"success": True, "user_id": user_id}
 
@@ -380,16 +411,6 @@ def handle_postback(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg_text))
 
 # Run
-nest_asyncio.apply()
-if NGROK_AUTH_TOKEN == 'YOUR_NGROK_AUTH_TOKEN_HERE':
-    print("\n⚠️ กรุณาใส่ Ngrok Token ก่อนรันครับ!\n")
-else:
-    try:
-        ngrok.set_auth_token(NGROK_AUTH_TOKEN)
-        ngrok.kill()
-        tunnel = ngrok.connect(8000)
-        PUBLIC_URL = tunnel.public_url
-        print("Public URL:", PUBLIC_URL)
-        uvicorn.run(app, port=8000)
-    except Exception as e:
-        print(f"Ngrok Error: {e}")
+if __name__ == "__main__":
+    nest_asyncio.apply()
+    uvicorn.run(app, port=8000)
