@@ -40,7 +40,7 @@ LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
 
 GDRIVE_FILE_ID = "1RtR1gTpcWGPY3z05hhwtdr4zxlMuxkzP"
 SPOOF_MODEL_PATH = "resnet50_spoof_best.pt"
-NGROK_AUTH_TOKEN = 'YOUR_NGROK_AUTH_TOKEN_HERE' 
+NGROK_AUTH_TOKEN = '35HRFySeHKxSBkuFZ48n0tT6sZl_CoVKLmVZ1o1CuKUwoSje' 
 
 # ==========================================
 # 🧠 MODEL ARCHITECTURE (SpoofNet)
