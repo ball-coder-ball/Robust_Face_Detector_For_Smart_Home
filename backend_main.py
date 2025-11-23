@@ -145,6 +145,189 @@ def base64_to_pil_image(base64_string):
     img_bytes = base64.b64decode(base64_string)
     return Image.open(io.BytesIO(img_bytes)).convert('RGB')
 
+def base64_to_cv2_image(base64_string):
+    if "," in base64_string: base64_string = base64_string.split(",")[1]
+    img_bytes = base64.b64decode(base64_string)
+    img_array = np.frombuffer(img_bytes, dtype=np.uint8)
+    return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+def load_known_faces():
+    embeddings = {}
+    if not os.path.exists(DB_PATH): return embeddings
+    for f in os.listdir(DB_PATH):
+        if f.endswith(".npy"):
+            # Filename format: Name_UserID_embeddings.npy
+            parts = f.split("_")
+            if len(parts) >= 2:
+                name = parts[0]
+                user_id = parts[1]
+                try:
+                    embs = np.load(os.path.join(DB_PATH, f))
+                    if name not in embeddings: embeddings[name] = {"user_id": user_id, "embeddings": []}
+                    for e in embs: embeddings[name]["embeddings"].append(e)
+                except: pass
+    print(f"Loaded {len(embeddings)} users.")
+    return embeddings
+known_face_db = load_known_faces()
+
+def calculate_cosine_similarity(v1, v2):
+    return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+
+print("⏳ Warming up DeepFace model...")
+try:
+    DeepFace.build_model(MODEL_NAME)
+    print("✅ DeepFace VGG-Face Warmed Up!")
+except Exception as e:
+    print(f"⚠️ DeepFace Warmup Failed: {e}")
+
+class RequestModel(BaseModel):
+    image_data: str = None
+    name: str = None
+    user_id: str = None
+    images: List[str] = None
+
+@app.get("/api/v1/health")
+async def health_check():
+    return {"status": "ok", "models_loaded": True}
+
+@app.post("/api/v1/spoof-check")
+async def spoof_check(req: RequestModel):
+    if spoof_model is None:
+        return {"is_real": True, "confidence": 1.0, "mode": "mock_fallback"}
+    try:
+        image = base64_to_pil_image(req.image_data)
+        image_tensor = preprocess_transform(image).unsqueeze(0).to(device)
+        with torch.no_grad():
+            output = spoof_model(image_tensor)
+            score = output.item()
+            is_real = score > 0.5 
+            display_conf = score if is_real else (1 - score)
+        return {"is_real": is_real, "confidence": display_conf}
+    except Exception as e:
+        return {"is_real": True, "confidence": 1.0, "error": str(e)}
+
+@app.post("/api/v1/check-face-existence")
+async def check_face_existence(req: RequestModel):
+    try:
+        img = base64_to_cv2_image(req.image_data)
+        objs = DeepFace.represent(img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=False)
+        if not objs: return {"found": False}
+        target_emb = objs[0]["embedding"]
+        found_user = None
+        for name, data in known_face_db.items():
+            for db_emb in data["embeddings"]:
+                if calculate_cosine_similarity(target_emb, db_emb) > 0.60:
+                    found_user = name; break
+            if found_user: break
+        return {"found": True, "name": found_user} if found_user else {"found": False}
+    except: return {"found": False}
+
+@app.post("/api/v1/request-permission")
+async def request_permission(req: RequestModel):
+    global PUBLIC_URL
+    user_id = f"user_{np.random.randint(10000, 99999)}"
+    user_status_db[user_id] = "pending" 
+    print(f"👉 [REQ] Created ID: {user_id} | Status: {user_status_db[user_id]}")
+
+    image_url = "https://via.placeholder.com/300"
+    if req.image_data and PUBLIC_URL:
+        try:
+            img = base64_to_pil_image(req.image_data)
+            fname = f"temp_{user_id}.jpg"
+            save_path = os.path.join("static", fname)
+            img.save(save_path)
+            image_url = f"{PUBLIC_URL}/static/{fname}"
+            print(f"📸 Image saved: {image_url}")
+        except Exception as e:
+            print(f"⚠️ Image save failed: {e}")
+
+    if not line_bot_api: return {"success": True, "user_id": user_id, "mock": True}
+    
+    try:
+        actions = [
+            PostbackAction(label="อนุมัติ", data=f"action=approve&user_id={user_id}"),
+            PostbackAction(label="ปฏิเสธ", data=f"action=reject&user_id={user_id}")
+        ]
+        template = TemplateSendMessage(
+            alt_text="คำขอลงทะเบียน",
+            template=ButtonsTemplate(
+                thumbnail_image_url=image_url,
+                image_aspect_ratio="rectangle",
+                image_size="cover",
+                title=f"คำขอ: {req.name}",
+                text=f"ID: {user_id}",
+                actions=actions
+            )
+        )
+        line_bot_api.push_message(LINE_HOST_USER_ID, template)
+    except Exception as e: print(f"LINE Error: {e}")
+    
+    return {"success": True, "user_id": user_id}
+
+@app.get("/api/v1/check-approval-status/{user_id}")
+async def check_approval_status(user_id: str):
+    status = user_status_db.get(user_id, "pending")
+    return {"status": status}
+
+@app.post("/api/v1/register-faces")
+async def register_faces(req: RequestModel):
+    embs = []
+    for img_str in req.images:
+        try:
+            img = base64_to_cv2_image(img_str)
+            objs = DeepFace.represent(img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=False)
+            if objs: embs.append(objs[0]["embedding"])
+        except: pass
+    if embs:
+        np.save(os.path.join(DB_PATH, f"{req.name}_{req.user_id}_embeddings.npy"), np.array(embs))
+        global known_face_db; known_face_db = load_known_faces()
+        return {"success": True}
+    return {"success": False}
+
+@app.post("/api/v1/scan-face")
+async def scan_face(req: RequestModel):
+    try:
+        spoof_res = await spoof_check(req)
+        if not spoof_res["is_real"]:
+             return {
+                 "is_match": False, 
+                 "reason": "spoof_detected", 
+                 "spoof_confidence": spoof_res["confidence"]
+             }
+
+        img = base64_to_cv2_image(req.image_data)
+        objs = DeepFace.represent(img, model_name=MODEL_NAME, detector_backend=DETECTOR_BACKEND, enforce_detection=True)
+        if not objs: return {"is_match": False, "reason": "no_face"}
+        target_emb = objs[0]["embedding"]
+        best_score = 0; best_name = None; best_uid = None
+        
+        for name, data in known_face_db.items():
+            for db_emb in data["embeddings"]:
+                score = calculate_cosine_similarity(target_emb, db_emb)
+                if score > best_score: 
+                    best_score = score
+                    best_name = name
+                    best_uid = data["user_id"]
+        
+        if best_score > 0.60: 
+            # Check approval status
+            # If user is in known_face_db but not in user_status_db (e.g. after restart), default to pending
+            approval_status = user_status_db.get(best_uid, "pending")
+            
+            return {
+                "is_match": True, 
+                "user": {"name": best_name, "user_id": best_uid}, 
+                "confidence": float(best_score),
+                "spoof_confidence": spoof_res["confidence"],
+                "approval_status": approval_status
+            }
+        else: return {"is_match": False, "reason": "unknown"}
+    except: return {"is_match": False, "reason": "error"}
+
+@app.post("/webhook")
+async def line_webhook(request: Request):
+    if not webhook_handler: return {"status": "mock"}
+    signature = request.headers.get("X-Line-Signature", "")
     body = await request.body()
     try: webhook_handler.handle(body.decode(), signature)
     except InvalidSignatureError: raise HTTPException(status_code=401)
