@@ -7,151 +7,239 @@
     <title>Face Data Collection - บันทึกข้อมูลใบหน้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap"
         rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background: #1a1a1a;
-            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: white;
             overflow-x: hidden;
+            margin: 0;
         }
 
-        .hero-title {
-            font-family: 'Crimson Text', serif;
-            font-weight: 700;
+        /* Animated Mesh Gradient Background */
+        .mesh-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
         }
 
-        .gradient-text {
-            background: linear-gradient(135deg, #00ff88, #00ccff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .mesh-blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out alternate;
         }
 
-        .camera-container {
-            position: relative;
-            border: 3px solid #00ff88;
-            border-radius: 16px;
-            overflow: hidden;
-            background: #000;
+        .blob-1 {
+            top: 10%;
+            left: 20%;
+            width: 400px;
+            height: 400px;
+            background: #4f46e5;
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            bottom: 20%;
+            right: 10%;
+            width: 350px;
+            height: 350px;
+            background: #db2777;
+            animation-delay: -2s;
+        }
+
+        .blob-3 {
+            top: 40%;
+            left: 60%;
+            width: 300px;
+            height: 300px;
+            background: #06b6d4;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(30px, 50px) scale(1.1);
+            }
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #db2777 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(219, 39, 119, 0.4);
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(219, 39, 119, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .btn-gradient:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            filter: grayscale(0.5);
+        }
+
+        /* Camera */
+        #cameraFeed {
+            transform: scaleX(-1);
         }
 
         .capture-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 255, 136, 0.1);
+            inset: 0;
+            background: rgba(255, 255, 255, 0.8);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            pointer-events: none;
+            transition: opacity 0.1s ease;
         }
 
-        .capture-overlay.active {
+        .capture-overlay.flash {
             opacity: 1;
-            animation: flash 0.3s ease;
         }
 
-        @keyframes flash {
-
-            0%,
-            100% {
-                opacity: 0.1;
-            }
-
-            50% {
-                opacity: 0.3;
-            }
-        }
-
-        .progress-bar {
+        /* Progress Bar */
+        .progress-container {
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            border-radius: 999px;
             overflow: hidden;
-            height: 20px;
+            height: 12px;
         }
 
         .progress-fill {
-            background: linear-gradient(90deg, #00ff88, #00ccff);
+            background: linear-gradient(90deg, #06b6d4, #4f46e5);
             height: 100%;
-            border-radius: 10px;
+            border-radius: 999px;
             transition: width 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #00ff88, #00cc6a);
-            border: none;
-            color: #0a0a0a;
-            font-weight: 600;
-            padding: 16px 32px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 1000;
-            background: #00ff88;
-            color: black;
-        }
-
-        /* Mirror */
-        #cameraFeed {
-            transform: scaleX(-1);
+            box-shadow: 0 0 10px rgba(79, 70, 229, 0.5);
         }
     </style>
 </head>
 
-<body>
-    <main class="container mx-auto px-6 py-8">
-        <div class="text-center mb-8">
-            <h1 class="hero-title text-4xl md:text-5xl mb-4"><span class="gradient-text">บันทึกข้อมูลใบหน้า</span></h1>
-            <p class="text-xl text-gray-300">ระบบจะถ่ายภาพอัตโนมัติ 30 ภาพ</p>
+<body class="antialiased min-h-screen flex flex-col relative">
+
+    <!-- Background -->
+    <div class="mesh-bg">
+        <div class="mesh-blob blob-1"></div>
+        <div class="mesh-blob blob-2"></div>
+        <div class="mesh-blob blob-3"></div>
+    </div>
+
+    <main class="container mx-auto px-4 py-8 flex-grow flex flex-col items-center justify-center">
+
+        <!-- Header -->
+        <div class="text-center mb-8 opacity-0" id="headerSection">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2 tracking-tight">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-400">Face Data
+                    Collection</span>
+            </h1>
+            <p class="text-gray-400">System will automatically capture 30 images</p>
         </div>
 
-        <div class="grid lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2">
-                <div class="camera-container aspect-video relative mb-4">
-                    <video id="cameraFeed" class="w-full h-full object-cover"></video>
-                    <div class="capture-overlay" id="captureOverlay"></div>
-                    <div class="absolute top-4 left-4 bg-black bg-opacity-50 rounded-lg p-3 text-green-400 font-medium">
-                        กำลังบันทึก...</div>
+        <div class="grid lg:grid-cols-3 gap-8 max-w-5xl w-full">
+
+            <!-- Left: Camera -->
+            <div class="lg:col-span-2 opacity-0" id="cameraSection">
+                <div class="glass-card rounded-3xl p-2 relative overflow-hidden">
+                    <div class="relative aspect-video rounded-2xl overflow-hidden bg-black">
+                        <video id="cameraFeed" class="w-full h-full object-cover"></video>
+                        <div id="captureOverlay" class="capture-overlay"></div>
+
+                        <!-- Recording Badge -->
+                        <div
+                            class="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+                            <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                            <span class="text-xs font-medium text-white">Live Camera</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mb-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm text-gray-400">ความคืบหน้า</span>
-                        <span class="text-sm text-green-400" id="progressText">0/30 ภาพ</span>
+                <!-- Progress -->
+                <div class="mt-6 glass-card rounded-2xl p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm text-gray-400 font-medium">Capture Progress</span>
+                        <span class="text-sm text-cyan-400 font-bold" id="progressText">0/30 Images</span>
                     </div>
-                    <div class="progress-bar">
+                    <div class="progress-container">
                         <div class="progress-fill" id="progressFill" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-6">
-                <div class="bg-gray-800 bg-opacity-50 p-6 rounded-xl border border-gray-700">
-                    <h3 class="text-lg font-semibold mb-4 text-green-400">สถานะ</h3>
-                    <p>ชื่อผู้ใช้: <span id="dispName" class="text-white font-bold">...</span></p>
-                    <p>ID: <span id="dispId" class="text-gray-400 font-mono text-sm">...</span></p>
+            <!-- Right: Info & Action -->
+            <div class="space-y-6 opacity-0" id="infoSection">
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">User Information</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Full Name</label>
+                            <div class="text-xl font-bold text-white" id="dispName">...</div>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">User ID</label>
+                            <div class="text-sm font-mono text-gray-300 bg-white/5 p-2 rounded-lg break-all"
+                                id="dispId">...</div>
+                        </div>
+                    </div>
                 </div>
-                <button id="startCaptureBtn" class="btn-primary">เริ่มบันทึกข้อมูล</button>
+
+                <div class="glass-card rounded-2xl p-6 text-center">
+                    <div class="mb-6">
+                        <div
+                            class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-3 text-2xl">
+                            📸</div>
+                        <p class="text-sm text-gray-400">Please keep your face in the frame and slowly turn your head
+                            slightly.</p>
+                    </div>
+                    <button id="startCaptureBtn"
+                        class="btn-gradient text-white text-lg font-semibold py-4 px-8 rounded-full w-full shadow-lg shadow-pink-500/20">
+                        Start Capture
+                    </button>
+                </div>
             </div>
+
         </div>
     </main>
 
     <script src="main.js"></script>
     <script>
+        // Animations
+        document.addEventListener('DOMContentLoaded', () => {
+            anime({
+                targets: '#headerSection', opacity: [0, 1], translateY: [-20, 0], duration: 800, easing: 'easeOutExpo'
+            });
+            anime({
+                targets: '#cameraSection', opacity: [0, 1], translateX: [-20, 0], duration: 800, delay: 200, easing: 'easeOutExpo'
+            });
+            anime({
+                targets: '#infoSection', opacity: [0, 1], translateX: [20, 0], duration: 800, delay: 400, easing: 'easeOutExpo'
+            });
+        });
+
         const TOTAL_IMAGES = 30;
         let capturedImages = [];
 
@@ -160,22 +248,26 @@
             const name = urlParams.get('name');
             const uid = urlParams.get('user_id');
 
-            document.getElementById('dispName').textContent = name;
-            document.getElementById('dispId').textContent = uid;
+            document.getElementById('dispName').textContent = name || 'Unknown';
+            document.getElementById('dispId').textContent = uid || 'N/A';
 
             const video = document.getElementById('cameraFeed');
             const startBtn = document.getElementById('startCaptureBtn');
             const progressFill = document.getElementById('progressFill');
             const progressText = document.getElementById('progressText');
+            const captureOverlay = document.getElementById('captureOverlay');
 
             // Start Camera
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            video.srcObject = stream;
-            video.play();
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+            } catch (e) { alert('Camera Error: ' + e.message); }
 
             startBtn.addEventListener('click', async () => {
                 startBtn.disabled = true;
-                startBtn.textContent = "กำลังถ่ายภาพ...";
+                startBtn.textContent = "Capturing...";
+                startBtn.classList.add('opacity-75');
 
                 for (let i = 0; i < TOTAL_IMAGES; i++) {
                     // Capture
@@ -184,38 +276,44 @@
                     cvs.getContext('2d').drawImage(video, 0, 0);
                     capturedImages.push(cvs.toDataURL('image/jpeg'));
 
-                    // UI Effect
-                    document.getElementById('captureOverlay').classList.add('active');
-                    setTimeout(() => document.getElementById('captureOverlay').classList.remove('active'), 50);
+                    // Flash Effect
+                    captureOverlay.classList.add('flash');
+                    setTimeout(() => captureOverlay.classList.remove('flash'), 50);
 
                     // Update Progress
                     const pct = ((i + 1) / TOTAL_IMAGES) * 100;
                     progressFill.style.width = `${pct}%`;
-                    progressText.textContent = `${i + 1}/${TOTAL_IMAGES} ภาพ`;
+                    progressText.textContent = `${i + 1}/${TOTAL_IMAGES} Images`;
 
-                    await new Promise(r => setTimeout(r, 150)); // Faster capture for 30 images
+                    await new Promise(r => setTimeout(r, 150));
                 }
 
-                startBtn.textContent = "กำลังบันทึก...";
+                startBtn.textContent = "Saving Data...";
 
                 // Send to Backend
-                const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/register-faces`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: uid,
-                        name: name,
-                        images: capturedImages
-                    })
-                });
-                const data = await res.json();
+                try {
+                    const res = await fetch(`${faceSystem.apiBaseUrl}/api/v1/register-faces`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: uid,
+                            name: name,
+                            images: capturedImages
+                        })
+                    });
+                    const data = await res.json();
 
-                if (data.success) {
-                    faceSystem.showNotification('บันทึกเสร็จสิ้น! ไปหน้าสแกน', 'success');
-                    setTimeout(() => window.location.href = 'scan.html', 2000);
-                } else {
-                    alert("Error saving faces");
-                    window.location.reload();
+                    if (data.success) {
+                        faceSystem.showNotification('Registration Complete! Redirecting...', 'success');
+                        setTimeout(() => window.location.href = 'scan.html', 2000);
+                    } else {
+                        alert("Error saving faces. Please try again.");
+                        window.location.reload();
+                    }
+                } catch (e) {
+                    alert("Network Error: " + e.message);
+                    startBtn.disabled = false;
+                    startBtn.textContent = "Retry Save";
                 }
             });
         });

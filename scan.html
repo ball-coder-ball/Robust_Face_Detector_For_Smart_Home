@@ -7,52 +7,128 @@
     <title>Face Scanning - สแกนใบหน้า</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap"
         rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background: #1a1a1a;
-            color: #ffffff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: white;
             overflow-x: hidden;
+            margin: 0;
         }
 
-        .hero-title {
-            font-family: 'Crimson Text', serif;
-            font-weight: 700;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #00ff88, #00ccff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .camera-container {
-            position: relative;
-            border: 3px solid #00ff88;
-            border-radius: 16px;
-            overflow: hidden;
-            background: #000;
-        }
-
-        .scanning-overlay {
-            position: absolute;
+        /* Animated Mesh Gradient Background */
+        .mesh-bg {
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+        }
+
+        .mesh-blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        .blob-1 {
+            top: 10%;
+            left: 20%;
+            width: 400px;
+            height: 400px;
+            background: #4f46e5;
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            bottom: 20%;
+            right: 10%;
+            width: 350px;
+            height: 350px;
+            background: #db2777;
+            animation-delay: -2s;
+        }
+
+        .blob-3 {
+            top: 40%;
+            left: 60%;
+            width: 300px;
+            height: 300px;
+            background: #06b6d4;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(30px, 50px) scale(1.1);
+            }
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #db2777 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(219, 39, 119, 0.4);
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(219, 39, 119, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .btn-gradient.scanning {
+            background: linear-gradient(135deg, #eab308 0%, #f97316 100%);
+            animation: pulse-orange 2s infinite;
+        }
+
+        @keyframes pulse-orange {
+            0% {
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+            }
+        }
+
+        /* Camera & Scan Line */
+        #cameraFeed {
+            transform: scaleX(-1);
         }
 
         .scan-line {
             position: absolute;
             width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00ff88, transparent);
-            animation: scan-vertical 2s linear infinite;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #06b6d4, transparent);
+            box-shadow: 0 0 15px #06b6d4;
+            animation: scan-vertical 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            display: none;
         }
 
         @keyframes scan-vertical {
@@ -75,127 +151,134 @@
             }
         }
 
+        /* Status Overlay */
         .access-status {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
             opacity: 0;
-            transition: all 0.5s ease;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 16px;
-            width: 80%;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
         .access-status.show {
             opacity: 1;
         }
 
-        .access-granted {
-            color: #00ff88;
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .access-denied {
-            color: #ff4444;
-        }
-
-        .status-card {
+        ::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
         }
 
-        .scan-button {
-            background: linear-gradient(135deg, #00ff88, #00cc6a);
-            border: none;
-            color: #0a0a0a;
-            font-weight: 600;
-            padding: 20px 40px;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
         }
 
-        .scan-button.scanning {
-            background: linear-gradient(135deg, #ffaa00, #ff8800);
-        }
-
-        .log-entry {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-left: 4px solid #00ff88;
-            font-size: 0.9rem;
-        }
-
-        .log-entry.error {
-            border-left-color: #ff4444;
-        }
-
-        /* Mirror */
-        #cameraFeed {
-            transform: scaleX(-1);
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
 
-<body>
-    <main class="container mx-auto px-6 py-8">
-        <div class="text-center mb-8">
-            <h1 class="hero-title text-4xl md:text-5xl mb-4"><span class="gradient-text">สแกนใบหน้า</span></h1>
-            <p class="text-gray-400">มองหน้าจอเพื่อทำการตรวจจำ</p>
+<body class="antialiased min-h-screen flex flex-col relative">
+
+    <!-- Background -->
+    <div class="mesh-bg">
+        <div class="mesh-blob blob-1"></div>
+        <div class="mesh-blob blob-2"></div>
+        <div class="mesh-blob blob-3"></div>
+    </div>
+
+    <main class="container mx-auto px-4 py-8 flex-grow flex flex-col">
+        <!-- Header -->
+        <div class="text-center mb-8 opacity-0" id="headerSection">
+            <h1 class="text-4xl md:text-5xl font-bold mb-2 tracking-tight">
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">Face
+                    Scanning</span>
+            </h1>
+            <p class="text-gray-400">Please look at the camera for verification</p>
         </div>
 
-        <div class="grid lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2">
-                <div class="camera-container aspect-video relative mb-6">
-                    <video id="cameraFeed" class="w-full h-full object-cover"></video>
-                    <div class="scanning-overlay">
-                        <div class="scan-line" id="scanLine"></div>
-                    </div>
+        <div class="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto w-full">
 
-                    <!-- Success/Fail Overlay -->
-                    <div class="access-status" id="accessStatus">
-                        <div class="text-6xl mb-4" id="statusIcon">✓</div>
-                        <div class="text-2xl font-bold mb-2" id="statusTitle">...</div>
-                        <div class="text-lg" id="statusMessage">...</div>
-                        <div class="text-sm mt-2 text-gray-300" id="spoofScore"></div>
+            <!-- Left: Camera -->
+            <div class="lg:col-span-2 opacity-0" id="cameraSection">
+                <div class="glass-card rounded-3xl p-2 relative overflow-hidden">
+                    <div class="relative aspect-video rounded-2xl overflow-hidden bg-black">
+                        <video id="cameraFeed" class="w-full h-full object-cover"></video>
+
+                        <!-- Scan Line -->
+                        <div class="scan-line" id="scanLine"></div>
+
+                        <!-- Status Overlay -->
+                        <div class="access-status" id="accessStatus">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 text-5xl shadow-2xl"
+                                id="statusIconContainer">
+                                <span id="statusIcon">✓</span>
+                            </div>
+                            <h2 class="text-3xl font-bold text-white mb-2" id="statusTitle">Access Granted</h2>
+                            <p class="text-lg text-gray-200 mb-2" id="statusMessage">Welcome back!</p>
+                            <div class="px-3 py-1 rounded-full bg-white/10 text-sm text-gray-300 backdrop-blur-md border border-white/10"
+                                id="spoofScore">
+                                Confidence: 99%
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="text-center">
-                    <button id="scanButton" class="scan-button">เริ่มสแกนใบหน้า</button>
+                <div class="mt-8 text-center">
+                    <button id="scanButton"
+                        class="btn-gradient text-white text-lg font-semibold py-4 px-12 rounded-full min-w-[250px] shadow-lg shadow-orange-500/20">
+                        Start Scanning
+                    </button>
                 </div>
             </div>
 
-            <div class="space-y-6">
-                <div class="status-card">
-                    <h3 class="text-lg font-semibold mb-4 text-blue-400">สถานะปัจจุบัน</h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between"><span class="text-gray-400">สถานะระบบ</span><span
-                                class="font-medium text-green-400" id="sysStatus">Standby</span></div>
+            <!-- Right: Stats -->
+            <div class="space-y-6 opacity-0" id="statsSection">
+                <!-- System Status -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">System Status</h3>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
+                            <span class="text-white font-medium">Camera System</span>
+                        </div>
+                        <span class="text-green-400 font-bold" id="sysStatus">Standby</span>
                     </div>
                 </div>
 
-                <div class="status-card">
-                    <h3 class="text-lg font-semibold mb-4 text-orange-400">สถิติความปลอดภัย</h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between"><span class="text-gray-400">การเข้าใช้วันนี้</span><span
-                                class="font-medium text-green-400" id="todayAccess">0 ครั้ง</span></div>
-                        <div class="flex justify-between"><span class="text-gray-400">การปลอมแปลง</span><span
-                                class="font-medium text-red-400" id="spoofAttempts">0 ครั้ง</span></div>
+                <!-- Stats -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Daily Statistics</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                            <span class="text-gray-300">Total Access</span>
+                            <span class="text-2xl font-bold text-white" id="todayAccess">0</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                            <span class="text-gray-300">Spoof Attempts</span>
+                            <span class="text-2xl font-bold text-red-400" id="spoofAttempts">0</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="status-card">
-                    <h3 class="text-lg font-semibold mb-4 text-purple-400">ประวัติการเข้าใช้</h3>
-                    <div id="accessLog" class="h-40 overflow-y-auto"></div>
+                <!-- Log -->
+                <div class="glass-card rounded-2xl p-6 flex-grow flex flex-col h-[300px]">
+                    <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Access Log</h3>
+                    <div id="accessLog" class="flex-grow overflow-y-auto space-y-3 pr-2">
+                        <!-- Logs go here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -203,22 +286,38 @@
 
     <script src="main.js"></script>
     <script>
+        // Animations
+        document.addEventListener('DOMContentLoaded', () => {
+            anime({
+                targets: '#headerSection', opacity: [0, 1], translateY: [-20, 0], duration: 800, easing: 'easeOutExpo'
+            });
+            anime({
+                targets: '#cameraSection', opacity: [0, 1], translateX: [-20, 0], duration: 800, delay: 200, easing: 'easeOutExpo'
+            });
+            anime({
+                targets: '#statsSection', opacity: [0, 1], translateX: [20, 0], duration: 800, delay: 400, easing: 'easeOutExpo'
+            });
+        });
+
+        // Logic
         let scanInterval;
         let isScanning = false;
-        // Load stats from local storage or init 0
         let stats = JSON.parse(localStorage.getItem('smartHomeStats')) || { access: 0, spoof: 0 };
 
         function updateStatsUI() {
-            document.getElementById('todayAccess').textContent = `${stats.access} ครั้ง`;
-            document.getElementById('spoofAttempts').textContent = `${stats.spoof} ครั้ง`;
+            document.getElementById('todayAccess').textContent = stats.access;
+            document.getElementById('spoofAttempts').textContent = stats.spoof;
             localStorage.setItem('smartHomeStats', JSON.stringify(stats));
         }
         updateStatsUI();
 
         function log(msg, type = 'normal') {
             const div = document.createElement('div');
-            div.className = `log-entry ${type === 'error' ? 'error' : ''}`;
-            div.innerHTML = `<div>${msg}</div><div class="text-xs text-gray-500">${new Date().toLocaleTimeString()}</div>`;
+            div.className = `p-3 rounded-xl border border-white/5 text-sm flex justify-between items-center animate-[fadeIn_0.3s_ease] ${type === 'error' ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5'}`;
+            div.innerHTML = `
+                <span class="${type === 'error' ? 'text-red-300' : 'text-gray-200'}">${msg}</span>
+                <span class="text-xs text-gray-500 ml-2">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            `;
             document.getElementById('accessLog').prepend(div);
         }
 
@@ -226,18 +325,25 @@
             const video = document.getElementById('cameraFeed');
             const btn = document.getElementById('scanButton');
 
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            video.srcObject = stream;
-            video.play();
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+            } catch (e) {
+                alert("Camera Error: " + e.message);
+            }
 
             btn.addEventListener('click', () => {
                 if (isScanning) return;
                 isScanning = true;
-                btn.textContent = "กำลังสแกน...";
+
+                // UI Update
+                btn.textContent = "Scanning...";
                 btn.classList.add('scanning');
-                document.getElementById('sysStatus').textContent = "Scanning...";
+                document.getElementById('sysStatus').textContent = "Active";
+                document.getElementById('sysStatus').className = "text-cyan-400 font-bold animate-pulse";
                 document.getElementById('scanLine').style.display = 'block';
-                document.getElementById('accessStatus').classList.remove('show'); // Hide previous status
+                document.getElementById('accessStatus').classList.remove('show');
 
                 scanInterval = setInterval(async () => {
                     const cvs = document.createElement('canvas');
@@ -253,52 +359,65 @@
                         const data = await res.json();
 
                         if (data.is_match) {
-                            // Found! Stop scanning
                             clearInterval(scanInterval);
                             isScanning = false;
 
-                            // UI Feedback
-                            document.getElementById('accessStatus').classList.add('show');
-                            document.getElementById('statusIcon').textContent = "✓";
-                            document.getElementById('statusTitle').textContent = "อนุญาตให้เข้า";
-                            document.getElementById('statusMessage').textContent = `ยินดีต้อนรับ ${data.user.name}`;
-                            document.getElementById('statusIcon').className = "text-6xl mb-4 access-granted";
-                            document.getElementById('spoofScore').textContent = `Real Confidence: ${(data.spoof_confidence * 100).toFixed(1)}%`;
+                            // Success UI
+                            const statusEl = document.getElementById('accessStatus');
+                            statusEl.classList.add('show');
 
-                            btn.textContent = "สแกนเสร็จสิ้น";
+                            const iconContainer = document.getElementById('statusIconContainer');
+                            iconContainer.className = "w-20 h-20 rounded-full flex items-center justify-center mb-4 text-5xl shadow-2xl bg-green-500 text-white";
+                            document.getElementById('statusIcon').textContent = "✓";
+
+                            document.getElementById('statusTitle').textContent = "Access Granted";
+                            document.getElementById('statusTitle').className = "text-3xl font-bold text-green-400 mb-2";
+
+                            document.getElementById('statusMessage').textContent = `Welcome, ${data.user.name}`;
+                            document.getElementById('spoofScore').textContent = `Real Confidence: ${(data.spoof_confidence * 100).toFixed(1)}%`;
+                            document.getElementById('spoofScore').className = "px-3 py-1 rounded-full bg-green-500/20 text-sm text-green-300 backdrop-blur-md border border-green-500/20";
+
+                            // Reset Button
+                            btn.textContent = "Scan Complete";
                             btn.classList.remove('scanning');
                             document.getElementById('scanLine').style.display = 'none';
+                            document.getElementById('sysStatus').textContent = "Standby";
+                            document.getElementById('sysStatus').className = "text-green-400 font-bold";
 
-                            // Update Stats
                             stats.access++;
                             updateStatsUI();
-                            log(`เข้าสู่ระบบ: ${data.user.name}`);
+                            log(`Access Granted: ${data.user.name}`);
 
-                            // Redirect or Reset
-                            setTimeout(() => {
-                                window.location.href = 'index.html';
-                            }, 3000);
+                            setTimeout(() => window.location.href = 'index.html', 3000);
 
                         } else if (data.reason === 'spoof_detected') {
-                            // Don't stop scanning immediately, maybe just warn? 
-                            // Or stop and show error. Let's stop to be safe.
                             clearInterval(scanInterval);
                             isScanning = false;
 
-                            document.getElementById('accessStatus').classList.add('show');
-                            document.getElementById('statusIcon').textContent = "✕";
-                            document.getElementById('statusTitle').textContent = "ไม่อนุญาต";
-                            document.getElementById('statusMessage').textContent = "ตรวจพบการปลอมแปลงใบหน้า";
-                            document.getElementById('statusIcon').className = "text-6xl mb-4 access-denied";
-                            document.getElementById('spoofScore').textContent = `Spoof Confidence: ${(data.spoof_confidence * 100).toFixed(1)}%`;
+                            // Fail UI
+                            const statusEl = document.getElementById('accessStatus');
+                            statusEl.classList.add('show');
 
-                            btn.textContent = "ลองใหม่";
+                            const iconContainer = document.getElementById('statusIconContainer');
+                            iconContainer.className = "w-20 h-20 rounded-full flex items-center justify-center mb-4 text-5xl shadow-2xl bg-red-500 text-white";
+                            document.getElementById('statusIcon').textContent = "✕";
+
+                            document.getElementById('statusTitle').textContent = "Access Denied";
+                            document.getElementById('statusTitle').className = "text-3xl font-bold text-red-400 mb-2";
+
+                            document.getElementById('statusMessage').textContent = "Spoofing Attempt Detected";
+                            document.getElementById('spoofScore').textContent = `Spoof Confidence: ${(data.spoof_confidence * 100).toFixed(1)}%`;
+                            document.getElementById('spoofScore').className = "px-3 py-1 rounded-full bg-red-500/20 text-sm text-red-300 backdrop-blur-md border border-red-500/20";
+
+                            btn.textContent = "Try Again";
                             btn.classList.remove('scanning');
                             document.getElementById('scanLine').style.display = 'none';
+                            document.getElementById('sysStatus').textContent = "Alert";
+                            document.getElementById('sysStatus').className = "text-red-400 font-bold";
 
                             stats.spoof++;
                             updateStatsUI();
-                            log("ตรวจพบการปลอมแปลง", 'error');
+                            log("Spoof Attempt Detected", 'error');
                         }
                     } catch (e) { console.log(e); }
                 }, 1000);
