@@ -1,145 +1,124 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Home Face Registration - ระบบลงทะเบียนใบหน้าอัจฉริยะ</title>
+    <title>Smart Home Face Registration</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap"
         rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background: #1a1a1a;
-            color: #ffffff;
-            overflow-x: hidden;
-        }
-
-        .hero-title {
-            font-family: 'Crimson Text', serif;
-            font-weight: 700;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #00ff88, #00ccff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .security-shield {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, #00ff88, #00aa55);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
-        }
-
-        .pulse-ring {
-            border: 2px solid #00ff88;
-            border-radius: 50%;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            50% {
-                transform: scale(1.1);
-                opacity: 0.7;
-            }
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #00ff88, #00cc6a);
-            border: none;
-            color: #0a0a0a;
-            font-weight: 600;
-            padding: 16px 32px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.3);
-        }
-
-        .feature-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 24px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: #00ff88;
-            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.1);
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 16px 24px;
-            border-radius: 8px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
             color: white;
-            font-weight: 500;
-            z-index: 1000;
-            transform: translateX(100%);
-            transition: transform 0.3s ease;
+            overflow-x: hidden;
+            margin: 0;
         }
 
-        .hero-bg {
-            background-image: url('hero-bg.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-
-        .overlay {
-            background: rgba(26, 26, 26, 0.8);
-        }
-
-        /* Loading Screen */
-        #loadingScreen {
+        /* Animated Mesh Gradient Background */
+        .mesh-bg {
             position: fixed;
-            inset: 0;
-            background: #000;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.5s ease;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
         }
 
-        .loader-circle {
-            width: 60px;
-            height: 60px;
-            border: 4px solid #333;
-            border-top: 4px solid #00ff88;
+        .mesh-blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+
+        .blob-1 {
+            top: 10%;
+            left: 20%;
+            width: 400px;
+            height: 400px;
+            background: #4f46e5;
+            /* Deep Purple */
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            bottom: 20%;
+            right: 10%;
+            width: 350px;
+            height: 350px;
+            background: #db2777;
+            /* Hot Pink */
+            animation-delay: -2s;
+        }
+
+        .blob-3 {
+            top: 40%;
+            left: 60%;
+            width: 300px;
+            height: 300px;
+            background: #06b6d4;
+            /* Cyan */
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            100% {
+                transform: translate(30px, 50px) scale(1.1);
+            }
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #db2777 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(219, 39, 119, 0.4);
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(219, 39, 119, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .btn-gradient:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Camera Mirror */
+        #cameraFeed {
+            transform: scaleX(-1);
+        }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #fff;
             border-radius: 50%;
+            width: 24px;
+            height: 24px;
             animation: spin 1s linear infinite;
-            margin-bottom: 20px;
         }
 
         @keyframes spin {
@@ -151,80 +130,164 @@
                 transform: rotate(360deg);
             }
         }
-
-        /* Camera Mirror & Size */
-        #cameraFeed {
-            transform: scaleX(-1);
-        }
-
-        /* Mirror effect */
-        .camera-preview {
-            border: 2px solid #00ff88;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-        }
     </style>
 </head>
 
-<body>
-    <!-- Loading Screen -->
-    <div id="loadingScreen">
-        <div class="loader-circle"></div>
-        <h2 class="text-2xl font-bold text-white mb-2">กำลังเตรียมระบบ AI...</h2>
-        <p class="text-gray-400">กรุณารอสักครู่</p>
+<body class="antialiased min-h-screen flex flex-col relative">
+
+    <!-- Background -->
+    <div class="mesh-bg">
+        <div class="mesh-blob blob-1"></div>
+        <div class="mesh-blob blob-2"></div>
+        <div class="mesh-blob blob-3"></div>
     </div>
 
-    <section class="hero-bg min-h-screen relative">
-        <div class="overlay min-h-screen flex items-center justify-center relative">
-            <div class="container mx-auto px-6 text-center relative z-10">
-                <div class="security-shield mx-auto mb-8 relative">
-                    <div class="pulse-ring absolute inset-0"></div>
-                    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        <path d="M9 12l2 2 4-4"></path>
-                    </svg>
-                </div>
-                <h1 class="hero-title text-5xl md:text-7xl mb-6"><span class="gradient-text">Smart Home</span><br><span
-                        class="text-white">Face Registration</span></h1>
-                <p class="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">ระบบลงทะเบียนใบหน้าอัจฉริยะด้วย
-                    AI<br>ปลอดภัยด้วยการตรวจจับการปลอมแปลงใบหน้า</p>
+    <!-- Loading Screen -->
+    <div id="loadingScreen"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/90 backdrop-blur-xl transition-opacity duration-500">
+        <div class="w-16 h-16 border-4 border-white/20 border-t-cyan-400 rounded-full animate-spin mb-4"></div>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Initializing AI...</h2>
+        <p class="text-gray-400 text-sm mt-2">Please wait a moment</p>
+    </div>
 
-                <div id="cameraSection" class="max-w-2xl mx-auto mb-12"> <!-- Increased width -->
-                    <div class="camera-preview aspect-video mb-6 relative hidden" id="camPreview">
-                        <video id="cameraFeed" class="w-full h-full object-cover"></video>
-                        <div id="countdownOverlay"
-                            class="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-8xl font-bold hidden">
-                            3</div>
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-12 flex flex-col items-center justify-center relative z-10">
+
+        <!-- Header -->
+        <div class="text-center mb-12 opacity-0" id="headerSection">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full glass-card mb-6 relative group">
+                <div
+                    class="absolute inset-0 bg-gradient-to-tr from-cyan-500 to-purple-500 rounded-full opacity-20 blur-lg group-hover:opacity-40 transition-opacity">
+                </div>
+                <svg class="w-10 h-10 text-white relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                    </path>
+                </svg>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold mb-4 tracking-tight">
+                <span
+                    class="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">Smart
+                    Home</span>
+                <br>Face Registration
+            </h1>
+            <p class="text-lg text-gray-300 max-w-2xl mx-auto font-light leading-relaxed">
+                Secure your home with next-generation AI face recognition. <br class="hidden md:block"> fast, reliable,
+                and spoof-proof.
+            </p>
+        </div>
+
+        <!-- Camera Section -->
+        <div class="w-full max-w-3xl mb-16 opacity-0" id="cameraSection">
+            <div class="glass-card rounded-3xl p-1 md:p-2 overflow-hidden relative">
+                <!-- Camera Preview -->
+                <div id="camPreview" class="relative aspect-video rounded-2xl overflow-hidden bg-black/40 hidden group">
+                    <video id="cameraFeed" class="w-full h-full object-cover"></video>
+
+                    <!-- Countdown Overlay -->
+                    <div id="countdownOverlay"
+                        class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20 hidden">
+                        <span
+                            class="text-9xl font-bold text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400 animate-pulse">3</span>
                     </div>
-                    <button id="requestCameraBtn" class="btn-primary w-full text-lg max-w-md mx-auto block">
-                        <span id="btnText">เริ่มต้นใช้งาน (ตรวจสอบ/ลงทะเบียน)</span>
-                        <div id="btnLoader"
-                            class="hidden w-6 h-6 border-2 border-gray-800 border-t-transparent rounded-full animate-spin mx-auto">
-                        </div>
+
+                    <!-- Scanning Line Animation -->
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-500/20 to-transparent w-full h-[10%] top-0 animate-[scan_2s_linear_infinite] hidden"
+                        id="scanLine"></div>
+                </div>
+
+                <!-- Action Area -->
+                <div class="p-8 text-center" id="actionArea">
+                    <button id="requestCameraBtn"
+                        class="btn-gradient text-white text-lg font-semibold py-4 px-10 rounded-full w-full md:w-auto min-w-[280px] flex items-center justify-center gap-3 mx-auto">
+                        <span id="btnText">Start Verification</span>
+                        <div id="btnLoader" class="loader hidden"></div>
                     </button>
-                </div>
-
-                <div class="grid md:grid-cols-3 gap-8 mt-16 max-w-6xl mx-auto">
-                    <div class="feature-card">
-                        <h3 class="text-xl font-semibold mb-2 text-green-400">1. ตรวจสอบตัวตน</h3>
-                        <p class="text-gray-400">ระบบเช็คฐานข้อมูลอัตโนมัติ</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3 class="text-xl font-semibold mb-2 text-blue-400">2. รอการอนุมัติ</h3>
-                        <p class="text-gray-400">เจ้าของบ้านอนุมัติผ่าน LINE</p>
-                    </div>
-                    <div class="feature-card">
-                        <h3 class="text-xl font-semibold mb-2 text-purple-400">3. สแกนเข้าบ้าน</h3>
-                        <p class="text-gray-400">รวดเร็วและแม่นยำ</p>
-                    </div>
+                    <p class="text-gray-500 text-sm mt-4">Privacy assured. Data is processed locally.</p>
                 </div>
             </div>
         </div>
-    </section>
+
+        <!-- Features Grid -->
+        <div class="grid md:grid-cols-3 gap-6 w-full max-w-5xl opacity-0" id="featuresSection">
+            <!-- Card 1 -->
+            <div class="glass-card rounded-2xl p-6 hover:bg-white/5 transition-colors">
+                <div class="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center mb-4 text-green-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Instant Check</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">Automatically checks if you are already registered in
+                    the system database.</p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="glass-card rounded-2xl p-6 hover:bg-white/5 transition-colors">
+                <div class="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-blue-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Request Access</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">New users can request approval directly from the
+                    homeowner via LINE.</p>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="glass-card rounded-2xl p-6 hover:bg-white/5 transition-colors">
+                <div
+                    class="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 text-purple-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 012 11m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Smart Scan</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">Advanced anti-spoofing technology ensures only real
+                    faces are granted access.</p>
+            </div>
+        </div>
+    </main>
 
     <script src="main.js"></script>
     <script>
+        // Animations
+        document.addEventListener('DOMContentLoaded', () => {
+            // Entrance Animations
+            anime({
+                targets: '#headerSection',
+                opacity: [0, 1],
+                translateY: [20, 0],
+                duration: 1000,
+                easing: 'easeOutExpo',
+                delay: 300
+            });
+
+            anime({
+                targets: '#cameraSection',
+                opacity: [0, 1],
+                translateY: [20, 0],
+                duration: 1000,
+                easing: 'easeOutExpo',
+                delay: 500
+            });
+
+            anime({
+                targets: '#featuresSection > div',
+                opacity: [0, 1],
+                translateY: [20, 0],
+                duration: 800,
+                easing: 'easeOutExpo',
+                delay: anime.stagger(100, { start: 700 })
+            });
+        });
+
+        // Logic
         document.addEventListener('DOMContentLoaded', async () => {
             const requestBtn = document.getElementById('requestCameraBtn');
             const btnText = document.getElementById('btnText');
@@ -233,10 +296,10 @@
             const video = document.getElementById('cameraFeed');
             const loadingScreen = document.getElementById('loadingScreen');
             const countdownOverlay = document.getElementById('countdownOverlay');
+            const actionArea = document.getElementById('actionArea');
 
             // 1. Check Backend Health (Loading Screen)
             try {
-                // Poll until backend is ready or timeout
                 let attempts = 0;
                 const checkHealth = async () => {
                     try {
@@ -246,7 +309,7 @@
                     return false;
                 };
 
-                while (attempts < 10) { // Try for ~10 seconds
+                while (attempts < 10) {
                     if (await checkHealth()) break;
                     await new Promise(r => setTimeout(r, 1000));
                     attempts++;
@@ -258,7 +321,7 @@
             setTimeout(() => loadingScreen.remove(), 500);
 
             requestBtn.addEventListener('click', async () => {
-                btnText.textContent = 'กำลังเปิดกล้อง...';
+                btnText.textContent = 'Starting Camera...';
                 btnLoader.classList.remove('hidden');
                 requestBtn.disabled = true;
 
@@ -267,28 +330,33 @@
                     video.srcObject = stream;
                     video.play();
 
-                    // Show Preview IMMEDIATELY
+                    // Show Preview
                     camPreview.classList.remove('hidden');
+                    // Hide button temporarily to focus on camera
+                    // actionArea.style.display = 'none'; 
 
                     // Countdown 3..2..1
-                    btnText.textContent = 'กรุณามองกล้อง...';
+                    btnText.textContent = 'Look at the camera...';
+                    countdownOverlay.classList.remove('hidden');
+
                     for (let i = 3; i > 0; i--) {
-                        countdownOverlay.textContent = i;
-                        countdownOverlay.classList.remove('hidden');
+                        countdownOverlay.querySelector('span').textContent = i;
+                        // Pulse animation reset
+                        const span = countdownOverlay.querySelector('span');
+                        span.classList.remove('animate-pulse');
+                        void span.offsetWidth; // trigger reflow
+                        span.classList.add('animate-pulse');
+
                         await new Promise(r => setTimeout(r, 1000));
                     }
                     countdownOverlay.classList.add('hidden');
 
-                    btnText.textContent = 'กำลังตรวจสอบใบหน้า...';
-                    await new Promise(r => setTimeout(r, 500)); // Small buffer
+                    btnText.textContent = 'Verifying...';
 
+                    // Capture
                     const canvas = document.createElement('canvas');
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
-                    // Draw mirrored image if needed, but usually for backend analysis raw is fine. 
-                    // However, to match user expectation of "mirror", we might want to flip it before sending?
-                    // Actually, standard practice is to send raw image, but display mirrored.
-                    // Let's send raw image.
                     canvas.getContext('2d').drawImage(video, 0, 0);
                     const frame = canvas.toDataURL('image/jpeg');
 
@@ -304,18 +372,19 @@
                     const data = await res.json();
 
                     if (data.found) {
-                        faceSystem.showNotification(`ยินดีต้อนรับคุณ ${data.name}! กำลังไปหน้าสแกน`, 'success');
+                        faceSystem.showNotification(`Welcome back, ${data.name}! Redirecting...`, 'success');
                         setTimeout(() => window.location.href = 'scan.html', 1500);
                     } else {
-                        faceSystem.showNotification('ไม่พบข้อมูลใบหน้า เข้าสู่ขั้นตอนลงทะเบียน', 'info');
+                        faceSystem.showNotification('Face not found. Redirecting to registration...', 'info');
                         setTimeout(() => window.location.href = 'register.html', 1500);
                     }
 
                 } catch (e) {
                     faceSystem.showNotification('Error: ' + e.message, 'error');
-                    btnText.textContent = 'ลองใหม่';
+                    btnText.textContent = 'Try Again';
                     btnLoader.classList.add('hidden');
                     requestBtn.disabled = false;
+                    camPreview.classList.add('hidden');
                 }
             });
         });
