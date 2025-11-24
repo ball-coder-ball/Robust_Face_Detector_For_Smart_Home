@@ -7,6 +7,10 @@ import io
 import nest_asyncio
 import gdown 
 import uuid
+import json
+import ssl
+import threading
+import paho.mqtt.client as mqtt_client
 from pyngrok import ngrok
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,6 +40,17 @@ LINE_HOST_USER_ID = 'U669226ca0e16195477ca5857a469567d'
 GDRIVE_FILE_ID = "1RtR1gTpcWGPY3z05hhwtdr4zxlMuxkzP"
 SPOOF_MODEL_PATH = "resnet50_spoof_best.pt"
 NGROK_AUTH_TOKEN = '35HRFySeHKxSBkuFZ48n0tT6sZl_CoVKLmVZ1o1CuKUwoSje' 
+
+# MQTT CONFIGURATION
+MQTT_BROKER = "9537a19f731146f885f64fdc978e77d2.s1.eu.hivemq.cloud"
+MQTT_PORT = 1883
+MQTT_USER = "NTK1st"
+MQTT_PASS = "Team15437%"
+MQTT_TOPIC_SERVO = "home/servo/set"
+MQTT_TOPIC_SENSORS = "home/sensors"
+
+# Global variable for sensor data
+latest_sensors = {"temperature": 0, "humidity": 0, "rain": 0, "light": 0}
 
 class SpoofNet(nn.Module):
     def __init__(self):
@@ -116,6 +131,49 @@ def load_pytorch_model():
 
 load_pytorch_model()
 
+# ==========================================
+# 🔌 MQTT CLIENT SETUP
+# ==========================================
+def on_connect(client, userdata, flags, rc):
+    print(f"✅ MQTT Connected (rc={rc})")
+    client.subscribe(MQTT_TOPIC_SENSORS)
+
+def on_message(client, userdata, msg):
+    global latest_sensors
+    try:
+        if msg.topic == MQTT_TOPIC_SENSORS:
+            payload = msg.payload.decode()
+            data = json.loads(payload)
+            latest_sensors = data
+            print(f"📊 Sensor Update: {data}")
+    except Exception as e:
+        print(f"⚠️ MQTT Msg Error: {e}")
+
+# Initialize MQTT Client
+mqtt_client_instance = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION1, f"Colab_Backend_{uuid.uuid4()}")
+mqtt_client_instance.username_pw_set(MQTT_USER, MQTT_PASS)
+mqtt_client_instance.tls_set(tls_version=ssl.PROTOCOL_TLS)
+mqtt_client_instance.on_connect = on_connect
+mqtt_client_instance.on_message = on_message
+
+def run_mqtt():
+    try:
+        print(f"🔌 Connecting to MQTT Broker: {MQTT_BROKER}...")
+        mqtt_client_instance.connect(MQTT_BROKER, MQTT_PORT, 60)
+        mqtt_client_instance.loop_forever()
+    except Exception as e:
+        print(f"❌ MQTT Connect Failed: {e}")
+
+mqtt_thread = threading.Thread(target=run_mqtt)
+mqtt_thread.daemon = True
+mqtt_thread.start()
+
+def send_open_door_command():
+    try:
+        mqtt_client_instance.publish(MQTT_TOPIC_SERVO, "OPEN")
+        print("🚀 Command Sent: OPEN")
+    except Exception as e: print(f"❌ Command Failed: {e}")
+
 try:
     line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
     webhook_handler = WebhookHandler(LINE_CHANNEL_SECRET)
@@ -185,6 +243,10 @@ class RequestModel(BaseModel):
 @app.get("/api/v1/health")
 async def health_check():
     return {"status": "ok", "models_loaded": True}
+
+@app.get("/api/v1/sensors")
+async def get_sensors():
+    return latest_sensors
 
 @app.post("/api/v1/spoof-check")
 async def spoof_check(req: RequestModel):
@@ -301,6 +363,7 @@ async def scan_face(req: RequestModel):
                 score = calculate_cosine_similarity(target_emb, db_emb)
                 if score > best_score: best_score = score; best_name = name
         if best_score > 0.60: 
+            send_open_door_command()  # เปิดประตูเมื่อสแกนหน้าผ่าน
             return {
                 "is_match": True, 
                 "user": {"name": best_name}, 
@@ -319,31 +382,5 @@ async def line_webhook(request: Request):
     except InvalidSignatureError: raise HTTPException(status_code=401)
     return {"status": "ok"}
 
-@webhook_handler.add(PostbackEvent)
-def handle_postback(event):
-    data = dict(x.split("=") for x in event.postback.data.split("&"))
-    uid = data.get("user_id")
-    act = data.get("action")
-    
-    print(f"📩 [WEBHOOK] Received: ID={uid}, Action={act}")
-
-    if uid and act:
-        user_status_db[uid] = "approved" if act == "approve" else "rejected"
-        print(f"✅ [DB UPDATE] {uid} is now {user_status_db[uid]}")
-        
-        msg_text = f"อนุมัติ {uid} เรียบร้อยแล้ว" if act == "approve" else f"ปฏิเสธคำขอ {uid} แล้ว"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=msg_text))
-
-nest_asyncio.apply()
-if NGROK_AUTH_TOKEN == 'YOUR_NGROK_AUTH_TOKEN_HERE':
-    print("\n⚠️ กรุณาใส่ Ngrok Token ก่อนรันครับ!\n")
-else:
-    try:
-        ngrok.set_auth_token(NGROK_AUTH_TOKEN)
-        ngrok.kill()
-        tunnel = ngrok.connect(8000)
-        PUBLIC_URL = tunnel.public_url
-        print("Public URL:", PUBLIC_URL)
-        uvicorn.run(app, port=8000)
-    except Exception as e:
-        print(f"Ngrok Error: {e}")
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
